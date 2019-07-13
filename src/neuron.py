@@ -4,18 +4,19 @@ import numpy as np
 class IzhikevichNeuron:
     def __init__(self):
         self.C = 250  # Membrane capacitance
-        self.k = 2.5
-        self.a = 0.01
-        self.b = -2
-        self.d = 200
+        self.k = 2.5  # Gain parameter of `vi`
+        self.a = 0.01  # Time scale parameter of `ui`
+        self.b = -2  # Sensitivity parameter of `ui`
+        self.d = 200  # After-spike reset parameter of `ui`
 
         self.vr = -60  # Resting membrane potential
-        self.vt = self.vr + 40 - self.b / self.k  # Threshold
-        self.v_peak = 30
-        self.v_reset = -65
+        self.vt = self.vr + 40 - self.b / self.k  # Threshold voltage
+        self.v_peak = 30  # Peak voltage
+        self.v_reset = -65  # Reset voltage
 
-        self.dt = 0.001
+        self.dt = 0.001  # Integral time interval [ms]
 
+        # Initialize neuron states
         self.reset_state()
 
     def reset_state(self):
@@ -35,6 +36,8 @@ class IzhikevichNeuron:
 
 
 def example_izhikevic():
+    """An example of IzhikevichNeuron class.
+    """
     import matplotlib.pyplot as plt
 
     # Setup a neuron
@@ -63,11 +66,11 @@ def example_izhikevic():
         U.append(neuron.ui)
         V.append(neuron.vi)
 
-    # Make figures
+    # Make a figure
     fig = plt.figure(figsize=(6, 6))
     ax_i = fig.add_subplot(3, 1, 1)
-    ax_v = fig.add_subplot(3, 1, 2)
-    ax_u = fig.add_subplot(3, 1, 3)
+    ax_u = fig.add_subplot(3, 1, 2)
+    ax_v = fig.add_subplot(3, 1, 3)
 
     # Plot results
     tspace = np.arange(nt) * dt * 1e-3
@@ -75,7 +78,7 @@ def example_izhikevic():
     ax_u.plot(tspace, np.array(U))
     ax_v.plot(tspace, np.array(V))
 
-    # Set labels
+    # Setup the figure
     ax_i.set_xlim((0, T*1e-3))
     ax_u.set_xlim((0, T*1e-3))
     ax_v.set_xlim((0, T*1e-3))
@@ -84,6 +87,7 @@ def example_izhikevic():
     ax_v.set_ylabel("Mmembrane potential [mV]")
     ax_v.set_xlabel("Time [s]")
 
+    # Show the figure
     plt.show()
 
 
