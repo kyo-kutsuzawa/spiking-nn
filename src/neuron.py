@@ -36,18 +36,19 @@ class IzhikevichNeuron:
 
 
 class DoubleExponentialSynapticFilter:
-    def __init__(self):
+    def __init__(self, n_units=1):
         self.tau_r = 2e-3  # Synaptic rise time
         self.tau_d = 2e-2  # Synaptic decay time
 
         self.dt = 1e-6  # Integral time interval [s]
+        self.n_units = n_units
 
         # Initialize synapse states
         self.reset_state()
 
     def reset_state(self):
-        self.r = 0.0
-        self.h = 0.0
+        self.r = np.zeros((self.n_units,))
+        self.h = np.zeros((self.n_units,))
 
     def update(self, spike):
         # Update the synapse states
@@ -118,7 +119,8 @@ def example_doubleESF():
     import matplotlib.pyplot as plt
 
     # Setup a neuron
-    synapse = DoubleExponentialSynapticFilter()
+    n_units = 4
+    synapse = DoubleExponentialSynapticFilter(n_units=n_units)
     synapse.dt = 5e-5  # Integral time interval [s]
 
     # Setup constants
@@ -130,15 +132,15 @@ def example_doubleESF():
     H = []
     R = []
     t = 0.0
-    t_spike = 0.01  # [s]
+    t_spike = np.random.uniform(0, 0.02, size=(n_units,))  # [s]
 
     # Simulation loop
     for i in range(nt):
         # Update a spike
-        if i == int(t_spike / dt):
-            spike = 1
-        else:
-            spike = 0
+        spike = np.zeros((n_units,))
+        for j in range(n_units):
+            if i == int(t_spike[j] / dt):
+                spike[j] = 1
 
         # Update the synapse
         synapse.update(spike)
@@ -171,4 +173,4 @@ def example_doubleESF():
 
 
 if __name__ == "__main__":
-    example_izhikevic()
+    example_doubleESF()
