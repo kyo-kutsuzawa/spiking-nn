@@ -47,11 +47,11 @@ class DoubleExponentialSynapticFilter:
 
     def reset_state(self):
         self.r = 0.0
-        self.hr = 0.0
+        self.h = 0.0
 
     def update(self, spike):
-        self.r = (1 - self.dt / self.tau_d) * self.r + self.hr * self.dt
-        self.hr = (1 - self.dt / self.tau_r) * self.hr + spike / (self.tau_r * self.tau_d)
+        self.r = (1 - self.dt / self.tau_d) * self.r + self.h * self.dt
+        self.h = (1 - self.dt / self.tau_r) * self.h + spike / (self.tau_r * self.tau_d)
 
 
 def example_izhikevic():
@@ -142,7 +142,7 @@ def example_doubleESF():
         synapse.update(spike)
 
         # Record the current states
-        H.append(synapse.hr)
+        H.append(synapse.h)
         R.append(synapse.r)
 
         t += dt
