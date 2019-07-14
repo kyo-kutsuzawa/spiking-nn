@@ -37,10 +37,10 @@ class IzhikevichNeuron:
 
 class DoubleExponentialSynapticFilter:
     def __init__(self):
-        self.tau_r = 2e-3
-        self.tau_d = 2e-2
+        self.tau_r = 2e-3  # Synaptic rise time
+        self.tau_d = 2e-2  # Synaptic decay time
 
-        self.dt = 0.001  # Integral time interval [ms]
+        self.dt = 1e-6  # Integral time interval [s]
 
         # Initialize synapse states
         self.reset_state()
@@ -50,6 +50,7 @@ class DoubleExponentialSynapticFilter:
         self.h = 0.0
 
     def update(self, spike):
+        # Update the synapse states
         self.r = (1 - self.dt / self.tau_d) * self.r + self.h * self.dt
         self.h = (1 - self.dt / self.tau_r) * self.h + spike / (self.tau_r * self.tau_d)
 
