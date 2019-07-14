@@ -35,6 +35,24 @@ class IzhikevichNeuron:
             self.vi = self.v_reset
 
 
+class DoubleExponentialSynapticFilter:
+    def __init__(self):
+        self.tau_r = 2e-3
+        self.tau_d = 2e-2
+
+        self.dt = 0.001  # Integral time interval [ms]
+
+        # Initialize synapse states
+        self.reset_state()
+
+    def reset_state(self):
+        self.r = 0.0
+        self.hr = 0.0
+
+    def update(self, spike):
+        pass
+
+
 def example_izhikevic():
     """An example of IzhikevichNeuron class.
     """
@@ -91,5 +109,62 @@ def example_izhikevic():
     plt.show()
 
 
+def example_doubleESF():
+    """An example of DoubleExponentialSynapticFilter class.
+    """
+    import matplotlib.pyplot as plt
+
+    # Setup a neuron
+    synapse = DoubleExponentialSynapticFilter()
+    synapse.dt = 0.04  # Integral time interval [ms]
+
+    # Setup constants
+    T = 1000  # Total simulation time [ms]
+    dt = synapse.dt
+    nt = int(T / dt)  # Number of simulation loop
+
+    # Initialize variables
+    H = []
+    R = []
+    t = 0.0
+
+    # Simulation loop
+    for i in range(nt):
+        # Update a spike
+        if t == 0.1:
+            spike = 1
+        else:
+            spike = 0
+
+        # Update the synapse
+        synapse.update(spike)
+
+        # Record the current states
+        H.append(synapse.hr)
+        R.append(synapse.r)
+
+        t += dt
+
+    # Make a figure
+    fig = plt.figure()
+    ax_h = fig.add_subplot(2, 1, 1)
+    ax_r = fig.add_subplot(2, 1, 2)
+
+    # Plot results
+    tspace = np.arange(nt) * dt * 1e-3
+    ax_h.plot(tspace, np.array(H))
+    ax_r.plot(tspace, np.array(R))
+
+    # Setup the figure
+    ax_h.set_xlim((0, T*1e-3))
+    ax_r.set_xlim((0, T*1e-3))
+    ax_h.set_ylabel("$h_r(t)$")
+    ax_r.set_ylabel("$r(t)$")
+    ax_r.set_xlabel("Time [s]")
+
+    # Show the figure
+    plt.show()
+
+
 if __name__ == "__main__":
-    example_izhikevic()
+    example_doubleESF()
