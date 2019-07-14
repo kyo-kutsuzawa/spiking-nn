@@ -50,7 +50,8 @@ class DoubleExponentialSynapticFilter:
         self.hr = 0.0
 
     def update(self, spike):
-        pass
+        self.r = (1 - self.dt / self.tau_d) * self.r + self.hr * self.dt
+        self.hr = (1 - self.dt / self.tau_r) * self.hr + spike / (self.tau_r * self.tau_d)
 
 
 def example_izhikevic():
@@ -116,10 +117,10 @@ def example_doubleESF():
 
     # Setup a neuron
     synapse = DoubleExponentialSynapticFilter()
-    synapse.dt = 0.04  # Integral time interval [ms]
+    synapse.dt = 5e-5  # Integral time interval [s]
 
     # Setup constants
-    T = 1000  # Total simulation time [ms]
+    T = 0.1  # Total simulation time [s]
     dt = synapse.dt
     nt = int(T / dt)  # Number of simulation loop
 
@@ -127,11 +128,12 @@ def example_doubleESF():
     H = []
     R = []
     t = 0.0
+    t_spike = 0.01  # [s]
 
     # Simulation loop
     for i in range(nt):
         # Update a spike
-        if t == 0.1:
+        if i == int(t_spike / dt):
             spike = 1
         else:
             spike = 0
@@ -151,13 +153,13 @@ def example_doubleESF():
     ax_r = fig.add_subplot(2, 1, 2)
 
     # Plot results
-    tspace = np.arange(nt) * dt * 1e-3
+    tspace = np.arange(nt) * dt
     ax_h.plot(tspace, np.array(H))
     ax_r.plot(tspace, np.array(R))
 
     # Setup the figure
-    ax_h.set_xlim((0, T*1e-3))
-    ax_r.set_xlim((0, T*1e-3))
+    ax_h.set_xlim((0, T))
+    ax_r.set_xlim((0, T))
     ax_h.set_ylabel("$h_r(t)$")
     ax_r.set_ylabel("$r(t)$")
     ax_r.set_xlabel("Time [s]")
