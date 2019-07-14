@@ -3,9 +3,9 @@ import numpy as np
 
 class IzhikevichNeuron:
     def __init__(self):
-        self.C = 250  # Membrane capacitance
+        self.C = 0.25  # Membrane capacitance
         self.k = 2.5  # Gain parameter of `vi`
-        self.a = 0.01  # Time scale parameter of `ui`
+        self.a = 10  # Time scale parameter of `ui`
         self.b = -2  # Sensitivity parameter of `ui`
         self.d = 200  # After-spike reset parameter of `ui`
 
@@ -14,7 +14,7 @@ class IzhikevichNeuron:
         self.v_peak = 30  # Peak voltage
         self.v_reset = -65  # Reset voltage
 
-        self.dt = 0.001  # Integral time interval [ms]
+        self.dt = 1e-6  # Integral time interval [s]
 
         # Initialize neuron states
         self.reset_state()
@@ -62,10 +62,10 @@ def example_izhikevic():
 
     # Setup a neuron
     neuron = IzhikevichNeuron()
-    neuron.dt = 0.04  # Integral time interval [ms]
+    neuron.dt = 4e-5  # Integral time interval [s]
 
     # Setup constants
-    T = 1000  # Total simulation time [ms]
+    T = 1.0  # Total simulation time [s]
     dt = neuron.dt
     nt = int(T / dt)  # Number of simulation loop
 
@@ -93,15 +93,15 @@ def example_izhikevic():
     ax_v = fig.add_subplot(3, 1, 3)
 
     # Plot results
-    tspace = np.arange(nt) * dt * 1e-3
+    tspace = np.arange(nt) * dt
     ax_i.plot(tspace, np.array(I))
     ax_u.plot(tspace, np.array(U))
     ax_v.plot(tspace, np.array(V))
 
     # Setup the figure
-    ax_i.set_xlim((0, T*1e-3))
-    ax_u.set_xlim((0, T*1e-3))
-    ax_v.set_xlim((0, T*1e-3))
+    ax_i.set_xlim((0, T))
+    ax_u.set_xlim((0, T))
+    ax_v.set_xlim((0, T))
     ax_i.set_ylabel("$i(t)$")
     ax_u.set_ylabel("$u(t)$")
     ax_v.set_ylabel("Mmembrane potential [mV]")
@@ -170,4 +170,4 @@ def example_doubleESF():
 
 
 if __name__ == "__main__":
-    example_doubleESF()
+    example_izhikevic()
