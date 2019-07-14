@@ -2,7 +2,7 @@ import numpy as np
 
 
 class IzhikevichNeuron:
-    def __init__(self):
+    def __init__(self, n_units=1):
         self.C = 0.25  # Membrane capacitance
         self.k = 2.5  # Gain parameter of `vi`
         self.a = 10  # Time scale parameter of `ui`
@@ -15,13 +15,14 @@ class IzhikevichNeuron:
         self.v_reset = -65  # Reset voltage
 
         self.dt = 1e-6  # Integral time interval [s]
+        self.n_units = n_units
 
         # Initialize neuron states
         self.reset_state()
 
     def reset_state(self):
-        self.ui = 0.0
-        self.vi = self.vr
+        self.ui = np.zeros((self.n_units,))
+        self.vi = np.full((self.n_units,), self.vr, dtype=np.float64)
 
     def update(self, i):
         # Update the neuron states
@@ -30,9 +31,8 @@ class IzhikevichNeuron:
         self.ui += self.dt * self.a * (self.b * (_vi - self.vr) - self.ui)
 
         # Reset the neuron states if necessary
-        if self.vi >= self.v_peak:
-            self.ui += self.d
-            self.vi = self.v_reset
+        self.ui = np.where(self.vi >= self.v_peak, self.ui + self.d, self.ui)
+        self.vi = np.where(self.vi >= self.v_peak, self.v_reset, self.vi)
 
 
 class DoubleExponentialSynapticFilter:
@@ -61,7 +61,8 @@ def example_izhikevic():
     import matplotlib.pyplot as plt
 
     # Setup a neuron
-    neuron = IzhikevichNeuron()
+    n_units = 4
+    neuron = IzhikevichNeuron(n_units=n_units)
     neuron.dt = 4e-5  # Integral time interval [s]
 
     # Setup constants
@@ -73,12 +74,12 @@ def example_izhikevic():
     I = []
     U = []
     V = []
+    bias = np.random.uniform(1000, 1200, (n_units,))
 
     # Simulation loop
     for _ in range(nt):
         # Update the neuron
-        bias = 1000
-        i = np.random.normal(100, 300)
+        i = np.random.normal(100, 300, size=(n_units,))
         neuron.update(i + bias)
 
         # Record the current states
