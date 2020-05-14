@@ -290,18 +290,20 @@ def example_SNN():
     import matplotlib.pyplot as plt
     import tqdm
 
+    # Setup constants
+    T = 15.0  # Total simulation time [s]
+    dt = 1e-3
+    nt = int(T / dt)  # Number of simulation loop
+    step = 50
+    train_interval = 10
+    t_record = 14.0
+
     # Setup a neuron
     n_units = 2000
     nn = SpikingNN(n_units=n_units, in_size=1, out_size=1)
-    nn.neurons.dt = 4e-2   # Integral time interval [ms]
-    nn.synapses.dt = 4e-2  # Integral time interval [ms]
+    nn.neurons.dt  = dt*1e3  # Integral time interval [ms]
+    nn.synapses.dt = dt*1e3  # Integral time interval [ms]
     nn.reset_state()
-
-    # Setup constants
-    T = 15.0  # Total simulation time [s]
-    dt = nn.synapses.dt * 1e-3
-    nt = int(T / dt)  # Number of simulation loop
-    step = 50
 
     # Initialize variables
     a = 2 * np.pi * 5.0
@@ -321,13 +323,13 @@ def example_SNN():
 
         # Train the decoder
         if 5.0 < t < 10.0:
-            if i % 20 == 1:
+            if i % train_interval == 0:
                 nn.train(x)
 
         # Record the current states
         t += dt
 
-        if t > 14.0:
+        if t > t_record:
             Xest.append(xest)
             Xteach.append(x)
             R.append(nn.synapses.r[0:5])
@@ -341,7 +343,7 @@ def example_SNN():
 
     # Plot results
     tspace = np.arange(nt)[::step] * dt
-    tspace = np.linspace(14, T, len(Xest))
+    tspace = np.linspace(t_record, T, len(Xest))
     ax1.plot(tspace, np.array(Xest))
     ax1.plot(tspace, np.array(Xteach))
     ax2.plot(tspace, np.array(R))
@@ -349,7 +351,9 @@ def example_SNN():
 
     # Setup the figure
     fig.suptitle("Simulation of SpikingNN")
-    ax1.set_xlim((0, T))
+    ax1.set_xlim((t_record, T))
+    ax2.set_xlim((t_record, T))
+    ax3.set_xlim((t_record, T))
     ax1.set_ylabel("$x(t)$")
     ax2.set_ylabel("$r(t)$")
     ax3.set_ylabel("$v(t)$")
