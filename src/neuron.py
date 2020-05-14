@@ -110,18 +110,21 @@ class SpikingNN:
         self.G = 5e3  # scale of the static weight matrix
         self.Q = 5e3  # scale of the feedback term
         self.eta = np.random.uniform(-1.0, 1.0, size=(n_units, out_size))  # encoder that contributes to the tuning preferences of the neurons in the network
-        self.w0 = np.random.normal(0, 1/(n_units*self.p), size=(n_units, n_units))  # sparse and static weight matrix
+        self.w0 = np.random.normal(0, 1/(np.sqrt(n_units)*self.p), size=(n_units, n_units))  # sparse and static weight matrix
         self.phi = np.zeros((n_units, out_size))  # decoder that is determined by RLS.
-        self.i_bias = 1200  # bias current
+        self.i_bias = 1000  # bias current
 
         self.mask = np.where(np.random.uniform(0, 1, size=(n_units, n_units)) < self.p, 1, 0)
         self.w0 *= self.mask
 
         l = 1 / 0.001  # regularization parameter
-        l = 0.5
+        l = 2.0
         self.P = np.identity(n_units) / l  # used for RLS
 
         self.n_units = n_units
+
+        self.Gw0 = self.G * self.w0.T
+        self.Qeta = self.Q * self.eta.T
 
     def reset_state(self):
         self.neurons.reset_state()
@@ -130,7 +133,7 @@ class SpikingNN:
 
     def update(self):
         # Calculate input currents
-        s = self.G * np.dot(self.synapses.r, self.w0.T) + self.Q * np.dot(self.x, self.eta.T)
+        s = np.dot(self.synapses.r, self.Gw0) + np.dot(self.x, self.Qeta)
         i = s + self.i_bias
 
         # Update the states of neurons and synapses
@@ -290,8 +293,8 @@ def example_SNN():
     # Setup a neuron
     n_units = 2000
     nn = SpikingNN(n_units=n_units, in_size=1, out_size=1)
-    nn.neurons.dt = 1e-1   # Integral time interval [ms]
-    nn.synapses.dt = 1e-1  # Integral time interval [ms]
+    nn.neurons.dt = 4e-2   # Integral time interval [ms]
+    nn.synapses.dt = 4e-2  # Integral time interval [ms]
     nn.reset_state()
 
     # Setup constants
@@ -301,7 +304,7 @@ def example_SNN():
     step = 50
 
     # Initialize variables
-    a = 2 * np.pi * 20
+    a = 2 * np.pi * 5.0
     t = 0.0
     Xest = []
     Xteach = []
@@ -324,7 +327,7 @@ def example_SNN():
         # Record the current states
         t += dt
 
-        if i % step == 0:
+        if t > 14.0:
             Xest.append(xest)
             Xteach.append(x)
             R.append(nn.synapses.r[0:5])
@@ -338,6 +341,7 @@ def example_SNN():
 
     # Plot results
     tspace = np.arange(nt)[::step] * dt
+    tspace = np.linspace(14, T, len(Xest))
     ax1.plot(tspace, np.array(Xest))
     ax1.plot(tspace, np.array(Xteach))
     ax2.plot(tspace, np.array(R))
