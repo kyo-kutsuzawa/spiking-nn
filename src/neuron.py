@@ -23,7 +23,7 @@ class IzhikevichNeuron:
         self.v_peak = 30  # Peak voltage
         self.v_reset = -65  # Reset voltage
 
-        self.dt = 1e-6  # Integral time interval [s]
+        self.dt = 1e-3  # Integral time interval [ms]
         self.n_units = n_units
 
         # Initialize neuron states
@@ -68,7 +68,7 @@ class DoubleExponentialSynapticFilter:
         self.tau_r =  2  # Synaptic rise time
         self.tau_d = 20  # Synaptic decay time
 
-        self.dt = 1e-6  # Integral time interval [s]
+        self.dt = 1e-3  # Integral time interval [ms]
         self.n_units = n_units
 
         # Initialize synapse states
@@ -117,8 +117,7 @@ class SpikingNN:
         self.mask = np.where(np.random.uniform(0, 1, size=(n_units, n_units)) < self.p, 1, 0)
         self.w0 *= self.mask
 
-        l = 1 / 0.001  # regularization parameter
-        l = 2.0
+        l = 2.0  # regularization parameter
         self.P = np.identity(n_units) / l  # used for RLS
 
         self.n_units = n_units
