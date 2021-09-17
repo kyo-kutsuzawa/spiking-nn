@@ -1,7 +1,18 @@
 # Spiking NN
 
 
-## Izhikevich neuron model
+## How to Try
+```
+python src/snn.py
+```
+
+- 0-1 sec: Before learning
+- 1-10 sec: During learning
+- 10- sec: After learning
+
+
+## FYI
+### Izhikevich neuron model
 Dynamics of the $i$-th neuron is as follows:
 \[
     \begin{aligned}
@@ -31,7 +42,7 @@ the dynamics can be updated as follows:
 \]
 
 
-## Double exponential synaptic filter
+### Double exponential synaptic filter
 Dynamics of the $j$-th neuron is as follows:
 \[
     \begin{aligned}
