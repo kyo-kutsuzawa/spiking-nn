@@ -6,17 +6,18 @@ class IzhikevichNeuron:
 
     A neuron has two status: ui and vi.
     """
+
     def __init__(self, n_units=1):
         """Initialization.
 
         Args:
             n_units (int): Number of neurons.
         """
-        self.C = 250   # Membrane capacitance
-        self.k = 2.5   # Gain parameter of `vi`
+        self.C = 250  # Membrane capacitance
+        self.k = 2.5  # Gain parameter of `vi`
         self.a = 0.01  # Time scale parameter of `ui`
-        self.b = -2    # Sensitivity parameter of `ui`
-        self.d = 200   # After-spike reset parameter of `ui`
+        self.b = -2  # Sensitivity parameter of `ui`
+        self.d = 200  # After-spike reset parameter of `ui`
 
         self.vr = -60  # Resting membrane potential
         self.vt = self.vr + 40 - self.b / self.k  # Threshold voltage
@@ -30,10 +31,11 @@ class IzhikevichNeuron:
         self.reset_state()
 
     def reset_state(self):
-        """Reset the neuron states to zero.
-        """
+        """Reset the neuron states to zero."""
         self.ui = np.zeros((self.n_units,))
-        self.vi = self.vr + (self.v_peak - self.vr) * np.random.uniform(0, 1, size=(self.n_units))
+        self.vi = self.vr + (self.v_peak - self.vr) * np.random.uniform(
+            0, 1, size=(self.n_units)
+        )
 
     def update(self, i):
         """Update the neuron states.
@@ -43,7 +45,11 @@ class IzhikevichNeuron:
         """
         # Update the neuron states
         _vi = self.vi
-        self.vi += self.dt / self.C * (self.k * (self.vi - self.vr) * (self.vi - self.vt) - self.ui + i)
+        self.vi += (
+            self.dt
+            / self.C
+            * (self.k * (self.vi - self.vr) * (self.vi - self.vt) - self.ui + i)
+        )
         self.ui += self.dt * self.a * (self.b * (_vi - self.vr) - self.ui)
 
         # Detect spiking
@@ -57,15 +63,15 @@ class IzhikevichNeuron:
 
 
 class DoubleExponentialSynapticFilter:
-    """Synapse model based on double exponential synaptic filter.
-    """
+    """Synapse model based on double exponential synaptic filter."""
+
     def __init__(self, n_units=1):
         """Initialization.
 
         Args:
             n_units (int): Number of synapses.
         """
-        self.tau_r =  2  # Synaptic rise time
+        self.tau_r = 2  # Synaptic rise time
         self.tau_d = 20  # Synaptic decay time
 
         self.dt = 1e-3  # Integral time interval [ms]
@@ -75,8 +81,7 @@ class DoubleExponentialSynapticFilter:
         self.reset_state()
 
     def reset_state(self):
-        """Reset the synapse states to zero.
-        """
+        """Reset the synapse states to zero."""
         self.r = np.zeros((self.n_units,))
         self.h = np.zeros((self.n_units,))
 
@@ -138,9 +143,9 @@ def example_izhikevic():
 
     # Setup the figure
     fig.suptitle("Simulation of IzhikevichNeuron")
-    #ax_i.set_title("Input current")
-    #ax_u.set_title("Internal State")
-    #ax_u.set_title("Membrane potential")
+    # ax_i.set_title("Input current")
+    # ax_u.set_title("Internal State")
+    # ax_u.set_title("Membrane potential")
     ax_i.set_xlim((0, T))
     ax_u.set_xlim((0, T))
     ax_v.set_xlim((0, T))

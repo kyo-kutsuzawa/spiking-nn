@@ -9,6 +9,7 @@ class SpikingNN:
     1) neurons with the Izhikevich model and
     2) synapses with the double exponential synaptic filter.
     """
+
     def __init__(self, n_units, in_size, out_size):
         """Initialization.
 
@@ -21,12 +22,18 @@ class SpikingNN:
         self.p = 0.1  # degree of sparsity in the network
         self.G = 5e3  # scale of the static weight matrix
         self.Q = 5e3  # scale of the feedback term
-        self.eta = np.random.uniform(-1.0, 1.0, size=(n_units, out_size))  # encoder that contributes to the tuning preferences of the neurons in the network
-        self.w0 = np.random.normal(0, 1/(np.sqrt(n_units)*self.p), size=(n_units, n_units))  # sparse and static weight matrix
+        self.eta = np.random.uniform(
+            -1.0, 1.0, size=(n_units, out_size)
+        )  # encoder that contributes to the tuning preferences of the neurons in the network
+        self.w0 = np.random.normal(
+            0, 1 / (np.sqrt(n_units) * self.p), size=(n_units, n_units)
+        )  # sparse and static weight matrix
         self.phi = np.zeros((n_units, out_size))  # decoder that is determined by RLS.
         self.i_bias = 1000  # bias current
 
-        self.mask = np.where(np.random.uniform(0, 1, size=(n_units, n_units)) < self.p, 1, 0)
+        self.mask = np.where(
+            np.random.uniform(0, 1, size=(n_units, n_units)) < self.p, 1, 0
+        )
         self.w0 *= self.mask
 
         l = 2.0  # regularization parameter
@@ -59,7 +66,7 @@ class SpikingNN:
         err = self.x - teaching_signal
 
         # Update P
-        Pr = self.P.dot(self.synapses.r.T).reshape((-1,1))
+        Pr = self.P.dot(self.synapses.r.T).reshape((-1, 1))
         rPr = self.synapses.r.dot(Pr)
         c = 1.0 / (1.0 + rPr)
         self.P -= Pr.dot(Pr.T) * c
@@ -87,8 +94,8 @@ def example_SNN():
     # Setup a neuron
     n_units = 500
     nn = SpikingNN(n_units=n_units, in_size=1, out_size=1)
-    nn.neurons.dt  = dt*1e3  # Integral time interval [ms]
-    nn.synapses.dt = dt*1e3  # Integral time interval [ms]
+    nn.neurons.dt = dt * 1e3  # Integral time interval [ms]
+    nn.synapses.dt = dt * 1e3  # Integral time interval [ms]
     nn.reset_state()
 
     # Initialize variables
