@@ -7,16 +7,19 @@ class LIFNeuron:
     A neuron has two status: ui and vi.
     """
 
-    def __init__(self, n_units=1):
+    def __init__(self, n_units: int = 1):
         """Initialization.
 
-        Args:
-            n_units (int): Number of neurons.
+        Parameters
+        ----------
+        n_units: int
+            Number of neurons.
         """
+
         self.tau_m = 10.0  # Membrane time constant [ms]
-        self.v_threshold = -40  # Threshold voltage
-        self.v_peak = 30  # Peak voltage
-        self.v_reset = -65  # Reset voltage
+        self.v_threshold = -40.0  # Threshold voltage
+        self.v_peak = 30.0  # Peak voltage
+        self.v_reset = -65.0  # Reset voltage
         self.refractory_period = 2.0  # Refractory time [ms]
 
         self.dt = 1e-3  # Integral time interval [ms]
@@ -27,16 +30,20 @@ class LIFNeuron:
 
     def reset_state(self):
         """Reset the neuron states to zero."""
+
         self.vi = np.random.uniform(self.v_reset, self.v_threshold, size=(self.n_units))
         self.t_spike = np.zeros((self.n_units,))
         self.cnt = 0
 
-    def update(self, i):
+    def update(self, i: np.ndarray):
         """Update the neuron states.
 
-        Args:
-            i (numpy.ndarray): Inputs to the neurons.
+        Parameters
+        ----------
+        i: numpy.ndarray
+            Inputs to the neurons.
         """
+
         # Reset the neuron states if necessary
         self.vi = np.where(self.vi >= self.v_peak, self.v_reset, self.vi)
 
@@ -63,22 +70,25 @@ class IzhikevichNeuron:
     A neuron has two status: ui and vi.
     """
 
-    def __init__(self, n_units=1):
+    def __init__(self, n_units: int = 1):
         """Initialization.
 
-        Args:
-            n_units (int): Number of neurons.
+        Parameters
+        ----------
+        n_units: int
+            Number of neurons.
         """
-        self.C = 250  # Membrane capacitance
+
+        self.C = 250.0  # Membrane capacitance
         self.k = 2.5  # Gain parameter of `vi`
         self.a = 0.01  # Time scale parameter of `ui`
-        self.b = -2  # Sensitivity parameter of `ui`
-        self.d = 200  # After-spike reset parameter of `ui`
+        self.b = -2.0  # Sensitivity parameter of `ui`
+        self.d = 200.0  # After-spike reset parameter of `ui`
 
-        self.vr = -60  # Resting membrane potential
-        self.vt = self.vr + 40 - self.b / self.k  # Threshold voltage
-        self.v_peak = 30  # Peak voltage
-        self.v_reset = -65  # Reset voltage
+        self.vr = -60.0  # Resting membrane potential
+        self.vt = self.vr + 40.0 - self.b / self.k  # Threshold voltage
+        self.v_peak = 30.0  # Peak voltage
+        self.v_reset = -65.0  # Reset voltage
 
         self.dt = 1e-3  # Integral time interval [ms]
         self.n_units = n_units
@@ -88,17 +98,21 @@ class IzhikevichNeuron:
 
     def reset_state(self):
         """Reset the neuron states to zero."""
+
         self.ui = np.zeros((self.n_units,))
         self.vi = self.vr + (self.v_peak - self.vr) * np.random.uniform(
             0, 1, size=(self.n_units)
         )
 
-    def update(self, i):
+    def update(self, i: np.ndarray):
         """Update the neuron states.
 
-        Args:
-            i (numpy.ndarray): Inputs to the neurons.
+        Parameters
+        ----------
+        i: numpy.ndarray
+            Inputs to the neurons.
         """
+
         # Update the neuron states
         _vi = self.vi
         self.vi += (
@@ -121,13 +135,16 @@ class IzhikevichNeuron:
 class SingleExponentialSynapticFilter:
     """Synapse model based on single exponential synaptic filter."""
 
-    def __init__(self, n_units=1):
+    def __init__(self, n_units: int = 1):
         """Initialization.
 
-        Args:
-            n_units (int): Number of synapses.
+        Parameters
+        ----------
+        n_units: int
+            Number of synapses.
         """
-        self.tau_d = 20  # Synaptic decay time [ms]
+
+        self.tau_d = 20.0  # Synaptic decay time [ms]
 
         self.dt = 1e-3  # Integral time interval [ms]
         self.n_units = n_units
@@ -137,28 +154,35 @@ class SingleExponentialSynapticFilter:
 
     def reset_state(self):
         """Reset the synapse states to zero."""
+
         self.r = np.zeros((self.n_units,))
 
-    def update(self, spike):
+    def update(self, spike: np.ndarray):
         """Update the synapse states
 
-        Args:
-            spike (numpy.ndarray): Input spikes
+        Parameters
+        ----------
+        spike: numpy.ndarray
+            Input spikes
         """
+
         self.r = (1 - self.dt / self.tau_d) * self.r + spike / self.tau_d
 
 
 class DoubleExponentialSynapticFilter:
     """Synapse model based on double exponential synaptic filter."""
 
-    def __init__(self, n_units=1):
+    def __init__(self, n_units: int = 1):
         """Initialization.
 
-        Args:
-            n_units (int): Number of synapses.
+        Parameters
+        ----------
+        n_units: int
+            Number of synapses.
         """
-        self.tau_r = 2  # Synaptic rise time
-        self.tau_d = 20  # Synaptic decay time
+
+        self.tau_r = 2.0  # Synaptic rise time
+        self.tau_d = 20.0  # Synaptic decay time
 
         self.dt = 1e-3  # Integral time interval [ms]
         self.n_units = n_units
@@ -168,15 +192,19 @@ class DoubleExponentialSynapticFilter:
 
     def reset_state(self):
         """Reset the synapse states to zero."""
+
         self.r = np.zeros((self.n_units,))
         self.h = np.zeros((self.n_units,))
 
-    def update(self, spike):
+    def update(self, spike: np.ndarray):
         """Update the synapse states
 
-        Args:
-            spike (numpy.ndarray): Input spikes
+        Parameters
+        ----------
+        spike: numpy.ndarray
+            Input spikes
         """
+
         self.r = (1 - self.dt / self.tau_d) * self.r + self.h * self.dt
         self.h = (1 - self.dt / self.tau_r) * self.h + spike / (self.tau_r * self.tau_d)
 
@@ -186,6 +214,7 @@ def example_lif():
 
     Random input current based on a Gaussian distribution is used.
     """
+
     import matplotlib.pyplot as plt
 
     # Setup a neuron
@@ -242,6 +271,7 @@ def example_izhikevic():
 
     Random input current based on a Gaussian distribution is used.
     """
+
     import matplotlib.pyplot as plt
 
     # Setup a neuron
@@ -305,6 +335,7 @@ def example_singleESF():
 
     Spikes at random timing are used.
     """
+
     import matplotlib.pyplot as plt
 
     # Setup a neuron
@@ -361,6 +392,7 @@ def example_doubleESF():
 
     Spikes at random timing are used.
     """
+
     import matplotlib.pyplot as plt
 
     # Setup a neuron

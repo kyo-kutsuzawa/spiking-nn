@@ -10,12 +10,20 @@ class SpikingNN:
     2) synapses with the double exponential synaptic filter.
     """
 
-    def __init__(self, n_units, in_size, out_size):
+    def __init__(self, n_units: int, in_size: int, out_size: int):
         """Initialization.
 
-        Args:
-            n_units (int): Number of neurons.
+        Parameters
+        ----------
+        n_units (int):
+        n_units: int
+            Number of neurons.
+        in_size: int
+            Input size.
+        out_size: int
+            Output size.
         """
+
         self.neurons = IzhikevichNeuron(n_units=n_units)
         self.synapses = DoubleExponentialSynapticFilter(n_units=n_units)
 
@@ -29,7 +37,7 @@ class SpikingNN:
             0, 1 / (np.sqrt(n_units) * self.p), size=(n_units, n_units)
         )  # sparse and static weight matrix
         self.phi = np.zeros((n_units, out_size))  # decoder that is determined by RLS.
-        self.i_bias = 1000  # bias current
+        self.i_bias = 1000.0  # bias current
 
         self.mask = np.where(
             np.random.uniform(0, 1, size=(n_units, n_units)) < self.p, 1, 0
@@ -47,7 +55,7 @@ class SpikingNN:
     def reset_state(self):
         self.neurons.reset_state()
         self.synapses.reset_state()
-        self.x = np.dot(self.synapses.r, self.phi)
+        self.x: np.ndarray = np.dot(self.synapses.r, self.phi)
 
     def update(self):
         # Calculate input currents
@@ -62,12 +70,12 @@ class SpikingNN:
         self.x = np.dot(self.synapses.r, self.phi)
         return self.x
 
-    def train(self, teaching_signal):
+    def train(self, teaching_signal: np.ndarray):
         err = self.x - teaching_signal
 
         # Update P
-        Pr = self.P.dot(self.synapses.r.T).reshape((-1, 1))
-        rPr = self.synapses.r.dot(Pr)
+        Pr: np.ndarray = self.P.dot(self.synapses.r.T).reshape((-1, 1))
+        rPr: np.ndarray = self.synapses.r.dot(Pr)
         c = 1.0 / (1.0 + rPr)
         self.P -= Pr.dot(Pr.T) * c
 
@@ -80,6 +88,7 @@ def example_SNN():
 
     Spikes at random timing are used.
     """
+
     import matplotlib.pyplot as plt
     import tqdm
 
