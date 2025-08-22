@@ -1,7 +1,71 @@
+import abc
 import numpy as np
 
 
-class LIFNeuron:
+class NeuronBase(abc.ABC):
+    @abc.abstractmethod
+    def __init__(self, n_units: int) -> None:
+        """Initialize a set of neurons.
+
+        Parameters
+        ----------
+        n_units: int
+            Number of neurons.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def reset_state(self) -> None:
+        """Reset the neuron states."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update(self, i: np.ndarray) -> np.ndarray:
+        """Update the neuron states.
+
+        Parameters
+        ----------
+        i: numpy.ndarray
+            Inputs to the neurons.
+
+        Returns
+        -------
+        spikes: np.ndarray
+            Spikes.
+        """
+        raise NotImplementedError
+
+
+class SynapticFilterBase(abc.ABC):
+    @abc.abstractmethod
+    def __init__(self, n_units: int) -> None:
+        """Initialize a set of synaptic filters.
+
+        Parameters
+        ----------
+        n_units: int
+            Number of synapses.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def reset_state(self) -> None:
+        """Reset the synapse states."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update(self, spike: np.ndarray) -> None:
+        """Update the synapse states.
+
+        Parameters
+        ----------
+        spike: numpy.ndarray
+            Input spikes.
+        """
+        raise NotImplementedError
+
+
+class LIFNeuron(NeuronBase):
     """leaky integrate-and-fire neuron model.
 
     A neuron has two status: ui and vi.
@@ -64,7 +128,7 @@ class LIFNeuron:
         return spike
 
 
-class IzhikevichNeuron:
+class IzhikevichNeuron(NeuronBase):
     """Neuron model based on the Izhikevich model.
 
     A neuron has two status: ui and vi.
@@ -132,7 +196,7 @@ class IzhikevichNeuron:
         return spike
 
 
-class SingleExponentialSynapticFilter:
+class SingleExponentialSynapticFilter(SynapticFilterBase):
     """Synapse model based on single exponential synaptic filter."""
 
     def __init__(self, n_units: int = 1):
@@ -169,7 +233,7 @@ class SingleExponentialSynapticFilter:
         self.r = (1 - self.dt / self.tau_d) * self.r + spike / self.tau_d
 
 
-class DoubleExponentialSynapticFilter:
+class DoubleExponentialSynapticFilter(SynapticFilterBase):
     """Synapse model based on double exponential synaptic filter."""
 
     def __init__(self, n_units: int = 1):
