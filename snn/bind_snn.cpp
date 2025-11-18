@@ -9,7 +9,7 @@ PYBIND11_MODULE(snn, m)
     m.doc() = "Spiking Neural Network";
 
     pybind11::class_<IzhikevichNeuron>(m, "IzhikevichNeuron")
-        .def(pybind11::init<double, double>())
+        .def(pybind11::init<int, double>())
         .def("reset_state", &IzhikevichNeuron::reset_state)
         .def("update", &IzhikevichNeuron::update)
         .def("size", &IzhikevichNeuron::size)
@@ -17,7 +17,7 @@ PYBIND11_MODULE(snn, m)
         .def_readonly("u", &IzhikevichNeuron::u);
 
     pybind11::class_<DoubleExponentialSynapticFilter>(m, "DoubleExponentialSynapticFilter")
-        .def(pybind11::init<double, double>())
+        .def(pybind11::init<int, double>())
         .def("reset_state", &DoubleExponentialSynapticFilter::reset_state)
         .def("update", &DoubleExponentialSynapticFilter::update)
         .def("size", &DoubleExponentialSynapticFilter::size)
@@ -25,7 +25,7 @@ PYBIND11_MODULE(snn, m)
         .def_readonly("h", &DoubleExponentialSynapticFilter::h);
 
     pybind11::class_<SpikingNeuralNetwork>(m, "SpikingNeuralNetwork")
-        .def(pybind11::init<double, double, double, double>())
+        .def(pybind11::init<int, int, int, double, double, double, double, double, double>())
         .def("reset_state", &SpikingNeuralNetwork::reset_state)
         .def("update", &SpikingNeuralNetwork::update)
         .def("train", &SpikingNeuralNetwork::train)

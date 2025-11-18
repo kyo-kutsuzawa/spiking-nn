@@ -59,7 +59,7 @@ public:
     IzhikevichNeuron neurons;
     DoubleExponentialSynapticFilter synapses;
     Eigen::VectorXd x;
-    SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt);
+    SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias);
     void reset_state();
     void update(Eigen::Ref<const Eigen::VectorXd> input);
     void train(Eigen::Ref<const Eigen::VectorXd> teaching_signal);
@@ -71,15 +71,15 @@ private:
     int out_size;
     double dt;
 
-    double p;            /**< @brief degree of sparsity in the network */
-    double G;            /**< @brief scale of the static weight matrix */
-    double Q;            /**< @brief scale of the feedback term */
-    Eigen::VectorXd eta; /**< @brief encoder that contributes to the tuning preferences of the neurons in the network */
-    RowMatrixXd w0;      /**< @brief sparse and static weight matrix */
-    RowMatrixXd phi;     /**< @brief decoder that is determined by RLS */
-    Eigen::VectorXd i_bias;       /**< @brief bias current */
-    double l;     /**< @brief regularization parameter */
-    RowMatrixXd P; /**< @brief used for RLS */
+    double p;               /**< @brief degree of sparsity in the network */
+    double G;               /**< @brief scale of the static weight matrix */
+    double Q;               /**< @brief scale of the feedback term */
+    Eigen::VectorXd eta;    /**< @brief encoder that contributes to the tuning preferences of the neurons in the network */
+    RowMatrixXd w0;         /**< @brief sparse and static weight matrix */
+    RowMatrixXd phi;        /**< @brief decoder that is determined by RLS */
+    Eigen::VectorXd i_bias; /**< @brief bias current */
+    double l;               /**< @brief regularization parameter */
+    RowMatrixXd P;          /**< @brief used for RLS */
     RowMatrixXd Gw0;
     RowMatrixXd Qeta;
 };

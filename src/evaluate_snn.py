@@ -14,7 +14,9 @@ def example_SNN():
     import tqdm
 
     # Setup constants
-    T = 15.0  # Total simulation time [s]
+    T = 20.0  # Total simulation time [s]
+    t0 = 1.0
+    t1 = 11.0
     dt = 1e-3  # Integral time interval [ms]
     nt = int(T / dt)  # Number of simulation loop
     step = 50
@@ -22,8 +24,8 @@ def example_SNN():
     t_record = 0.0
 
     # Setup a neuron
-    n_units = 500
-    nn = SpikingNeuralNetwork(n_units, 1, 1, dt * 1e3)
+    n_units = 1000
+    nn = SpikingNeuralNetwork(n_units, 1, 1, dt * 1e3, 0.1, 5e3, 5e3, 10.0, 1000.0)
     nn.reset_state()
 
     # Initialize variables
@@ -45,7 +47,7 @@ def example_SNN():
         x = np.array([np.sin(a * t)], dtype=np.float64)
 
         # Train the decoder
-        if 1.0 < t < 10.0:
+        if t0 < t < t1:
             if i % train_interval == 0:
                 nn.train(x)
 
@@ -69,6 +71,7 @@ def example_SNN():
     tspace = np.linspace(t_record, T, len(Xest))
     ax1.plot(tspace, np.array(Xest))
     ax1.plot(tspace, np.array(Xteach))
+    ax1.fill_between((t0, t1), -1.2, 1.2, color="black", alpha=0.3)
     ax2.plot(tspace, np.array(R))
     ax3.plot(tspace, np.array(V))
 

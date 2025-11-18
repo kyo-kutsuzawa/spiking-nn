@@ -2,7 +2,7 @@
 #include <iostream>
 #include "snn.hpp"
 
-SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt)
+SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias)
 {
     std::random_device rd;
     std::default_random_engine rand_engine(rd());
@@ -15,10 +15,10 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     this->out_size = out_size;
     this->dt = dt;
 
-    this->p = 0.1;
-    this->G = 5e3;
-    this->Q = 5e3;
-    this->l = 2.0;
+    this->p = connection_ratio;
+    this->G = G;
+    this->Q = Q;
+    this->l = alpha;
 
     this->phi = RowMatrixXd::Zero(out_size, n_units);
     this->eta = RowMatrixXd(n_units, out_size);
@@ -46,7 +46,7 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     this->i_bias = Eigen::VectorXd(n_units);
     for (int i = 0; i < n_units; i++)
     {
-        this->i_bias[i] = 1000.0;
+        this->i_bias[i] = bias;
     }
     this->P = RowMatrixXd::Identity(n_units, n_units);
     for (int i = 0; i < n_units; i++)

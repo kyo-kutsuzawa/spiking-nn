@@ -22,7 +22,16 @@ class SpikingNeuralNetwork:
     synapses: DoubleExponentialSynapticFilter
     x: npt.NDArray[np.float64]
     def __init__(
-        self, n_units: int, in_size: int, out_size: int, dt: float
+        self,
+        n_units: int,
+        in_size: int,
+        out_size: int,
+        dt: float,
+        connection_ratio: float,
+        G: float,
+        Q: float,
+        alpha: float,
+        bias: float,
     ) -> None: ...
     def reset_state(self) -> None: ...
     def update(self, input: npt.NDArray[np.float64]) -> None: ...
