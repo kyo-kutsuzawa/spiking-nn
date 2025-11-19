@@ -28,10 +28,6 @@ private:
     double vt;      /**< @brief Threshold voltage */
     double v_peak;  /**< @brief Peak voltage */
     double v_reset; /**< @brief Reset voltage */
-
-    // std::random_device rd;
-    // std::default_random_engine rand_engine;
-    // std::uniform_real_distribution<double> dist;
 };
 
 class DoubleExponentialSynapticFilter

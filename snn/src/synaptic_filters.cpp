@@ -18,7 +18,9 @@ DoubleExponentialSynapticFilter::DoubleExponentialSynapticFilter(int n_units, do
 
 void DoubleExponentialSynapticFilter::reset_state()
 {
-    for (int i = 0; i < this->n_units; i++)
+    int i;
+
+    for (i = 0; i < this->n_units; i++)
     {
         this->r[i] = 0.0;
         this->h[i] = 0.0;
@@ -27,7 +29,9 @@ void DoubleExponentialSynapticFilter::reset_state()
 
 void DoubleExponentialSynapticFilter::update(Eigen::Ref<const Eigen::VectorXd> spikes)
 {
-    for (int i = 0; i < this->n_units; i++)
+    int i;
+
+    for (i = 0; i < this->n_units; i++)
     {
         this->r[i] = (1 - this->dt / this->tau_d) * this->r[i] + this->h[i] * this->dt;
         this->h[i] = (1 - this->dt / this->tau_r) * this->h[i] + spikes[i] / (this->tau_r * this->tau_d);

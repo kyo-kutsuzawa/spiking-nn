@@ -9,6 +9,8 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     std::uniform_real_distribution<double> dist_01(0.0, 1.0);
     std::uniform_real_distribution<double> dist_11(-1.0, 1.0);
     std::normal_distribution<double> dist_normal(0.0, 1.0);
+    double coef;
+    int i, j;
 
     this->n_units = n_units;
     this->in_size = in_size;
@@ -22,19 +24,19 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
 
     this->phi = RowMatrixXd::Zero(out_size, n_units);
     this->eta = RowMatrixXd(n_units, out_size);
-    for (int i = 0; i < n_units; i++)
+    for (i = 0; i < n_units; i++)
     {
-        for (int j = 0; j < out_size; j++)
+        for (j = 0; j < out_size; j++)
         {
             this->eta(i, j) = dist_11(rand_engine);
         }
     }
 
     this->w0 = RowMatrixXd::Zero(n_units, n_units);
-    double coef = 1.0 / (sqrt(this->n_units) * this->p);
-    for (int i = 0; i < n_units; i++)
+    coef = 1.0 / (sqrt(this->n_units) * this->p);
+    for (i = 0; i < n_units; i++)
     {
-        for (int j = 0; j < n_units; j++)
+        for (j = 0; j < n_units; j++)
         {
             if (dist_01(rand_engine) < this->p)
             {
@@ -44,12 +46,12 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     }
 
     this->i_bias = Eigen::VectorXd(n_units);
-    for (int i = 0; i < n_units; i++)
+    for (i = 0; i < n_units; i++)
     {
         this->i_bias[i] = bias;
     }
     this->P = RowMatrixXd::Identity(n_units, n_units);
-    for (int i = 0; i < n_units; i++)
+    for (i = 0; i < n_units; i++)
     {
         this->P(i, i) /= l;
     }
@@ -65,7 +67,9 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
 
 void SpikingNeuralNetwork::reset_state()
 {
-    for (int i = 0; i < this->n_units; i++)
+    int i;
+
+    for (i = 0; i < this->n_units; i++)
     {
         this->x[i] = 0.0;
     }
@@ -76,11 +80,14 @@ void SpikingNeuralNetwork::reset_state()
 
 void SpikingNeuralNetwork::update(Eigen::Ref<const Eigen::VectorXd> input)
 {
+    Eigen::VectorXd current;
+    Eigen::VectorXd spikes;
+
     // Calculate input currents
-    Eigen::VectorXd current = this->Gw0 * this->synapses.r + this->Qeta * this->x + this->i_bias;
+    current = this->Gw0 * this->synapses.r + this->Qeta * this->x + this->i_bias;
 
     // Update the states of neurons and synapses
-    Eigen::VectorXd spikes = this->neurons.update(current);
+    spikes = this->neurons.update(current);
     this->synapses.update(spikes);
 
     this->x = this->phi * this->synapses.r;
@@ -88,12 +95,17 @@ void SpikingNeuralNetwork::update(Eigen::Ref<const Eigen::VectorXd> input)
 
 void SpikingNeuralNetwork::train(Eigen::Ref<const Eigen::VectorXd> teaching_signal)
 {
-    Eigen::VectorXd errors = this->x - teaching_signal;
+    Eigen::VectorXd errors;
+    Eigen::VectorXd Pr;
+    double rPr;
+    RowMatrixXd rPPr;
+
+    errors = this->x - teaching_signal;
 
     // Update P
-    Eigen::VectorXd Pr = this->P * this->synapses.r;
-    double rPr = this->synapses.r.dot(Pr);
-    RowMatrixXd rPPr = Pr * Pr.transpose();
+    Pr = this->P * this->synapses.r;
+    rPr = this->synapses.r.dot(Pr);
+    rPPr = Pr * Pr.transpose();
     this->P -= rPPr / (1.0 + rPr);
 
     // Update phi

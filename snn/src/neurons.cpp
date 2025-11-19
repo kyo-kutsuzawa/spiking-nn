@@ -31,13 +31,13 @@ IzhikevichNeuron::IzhikevichNeuron(int n_units, double dt)
 
 void IzhikevichNeuron::reset_state()
 {
-    double noise;
-
     std::random_device rd;
     std::default_random_engine rand_engine(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
+    double noise;
+    int i;
 
-    for (int i = 0; i < this->n_units; i++)
+    for (i = 0; i < this->n_units; i++)
     {
         noise = dist(rand_engine);
         this->v[i] = 0.0;
@@ -49,8 +49,9 @@ Eigen::VectorXd IzhikevichNeuron::update(Eigen::Ref<const Eigen::VectorXd> input
 {
     Eigen::VectorXd spikes = Eigen::VectorXd::Zero(this->n_units);
     double vi;
+    int i;
 
-    for (int i = 0; i < this->n_units; i++)
+    for (i = 0; i < this->n_units; i++)
     {
         vi = this->v[i];
         this->v[i] += (this->dt / this->C * (this->k * (this->v[i] - this->vr) * (this->v[i] - this->vt) - this->u[i] + input[i]));
