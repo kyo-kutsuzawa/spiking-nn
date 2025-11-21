@@ -5,11 +5,6 @@ from snn import SpikingNeuralNetwork
 
 
 def example_SNN():
-    """An example of SpikingNN class.
-
-    Spikes at random timing are used.
-    """
-
     import matplotlib.pyplot as plt
     import tqdm
 
