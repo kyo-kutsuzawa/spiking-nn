@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
-from synergy import TimeVaryingSynergy
+import synergy
 
 
 def example_decode() -> None:
@@ -14,11 +14,15 @@ def example_decode() -> None:
     n_synergies = 4
     synergy_length = 20
     n_dof = 2 * 2
+    refractory_period = int(synergy_length / 2)
+    n_activities_max = 50
     n_iter = 100
     lr = 0.01
 
     # Initialize time-varying synergies
-    tvsynergies = TimeVaryingSynergy(n_synergies, synergy_length, n_dof)
+    tvsynergies = synergy.TimeVaryingSynergy(
+        n_synergies, synergy_length, n_dof, refractory_period
+    )
 
     # Load a dataset
     dataset: list[npt.NDArray[np.float64]] = []
@@ -32,7 +36,15 @@ def example_decode() -> None:
     trajectories: list[list[list[float]]] = []
 
     # Extract synergies
-    tvsynergies.extract(trajectories, n_iter, lr)
+    tvsynergies = synergy.extract(
+        trajectories,
+        n_synergies,
+        synergy_length,
+        refractory_period,
+        n_activities_max,
+        n_iter,
+        lr,
+    )
 
     synergies = np.array(tvsynergies.synergies, dtype=np.float64)
 

@@ -10,4 +10,4 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-pybind11_add_module(synergy bind_synergy.cpp synergy.cpp)
+pybind11_add_module(synergy bind_synergy.cpp synergy.c)
