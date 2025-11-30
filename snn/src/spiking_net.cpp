@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <vector>
 #include "snn.hpp"
 
 SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias)
@@ -9,6 +10,8 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     std::uniform_real_distribution<double> dist_01(0.0, 1.0);
     std::uniform_real_distribution<double> dist_11(-1.0, 1.0);
     std::normal_distribution<double> dist_normal(0.0, 1.0);
+    std::uniform_int_distribution<int> dist_idx(0, n_units - 1);
+    std::vector<Eigen::Triplet<double>> triplet_vec;
     double coef;
     int i, j;
 
@@ -46,6 +49,13 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
         }
     }
 
+    this->w0_sp = Eigen::SparseMatrix<double>(n_units, n_units);
+    for (i = 0; i < (int)(n_units * n_units * connection_ratio); i++)
+    {
+        triplet_vec.push_back(Eigen::Triplet<double>(dist_idx(rand_engine), dist_idx(rand_engine), dist_normal(rand_engine) * coef));
+    }
+    this->w0_sp.setFromTriplets(triplet_vec.begin(), triplet_vec.end());
+
     this->i_bias = Eigen::VectorXd(n_units);
     for (i = 0; i < n_units; i++)
     {
@@ -63,6 +73,7 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     this->errors = Eigen::VectorXd(out_size);
     this->Pr = Eigen::VectorXd(n_units);
     this->PrrP = RowMatrixXd(n_units, n_units);
+    this->Gw0_sp = G * this->w0_sp;
 
     this->current = Eigen::VectorXd(n_units);
     this->spikes = Eigen::VectorXd(n_units);
@@ -91,7 +102,7 @@ void SpikingNeuralNetwork::update(const Eigen::Ref<const Eigen::VectorXd> input)
     int i;
 
     // Calculate input currents
-    this->current = this->Gw0 * this->synapses.r + this->Qeta * this->x + this->i_bias + input;
+    this->current = this->Gw0_sp * this->synapses.r + this->Qeta * this->x + this->i_bias + input;
 
     for (i = 0; i < this->n_units; i++)
     {

@@ -1,6 +1,7 @@
 #include <random>
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 using RowMatrixXd = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
@@ -33,6 +34,8 @@ private:
 
     double dt_C;
     double dt_a;
+    Eigen::VectorXd vr_vec;
+    Eigen::VectorXd vt_vec;
 };
 
 class DoubleExponentialSynapticFilter
@@ -88,4 +91,7 @@ private:
     RowMatrixXd PrrP;
     Eigen::VectorXd current;
     Eigen::VectorXd spikes;
+
+    Eigen::SparseMatrix<double> w0_sp;
+    Eigen::SparseMatrix<double> Gw0_sp;
 };

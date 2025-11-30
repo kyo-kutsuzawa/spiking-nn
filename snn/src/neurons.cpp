@@ -8,6 +8,8 @@ IzhikevichNeuron::IzhikevichNeuron()
 
 IzhikevichNeuron::IzhikevichNeuron(int n_units, double dt)
 {
+    int i;
+
     this->n_units = n_units;
     this->dt = dt;
     this->C = 250.0;
@@ -23,6 +25,14 @@ IzhikevichNeuron::IzhikevichNeuron(int n_units, double dt)
 
     this->dt_C = this->dt / this->C;
     this->dt_a = this->dt * this->a;
+
+    this->vr_vec = Eigen::VectorXd(this->n_units);
+    this->vt_vec = Eigen::VectorXd(this->n_units);
+    for (i = 0; i < this->n_units; i++)
+    {
+        this->vr_vec[i] = this->vr;
+        this->vt_vec[i] = this->vt;
+    }
 
     this->v = Eigen::VectorXd(this->n_units);
     this->v_pre = Eigen::VectorXd(this->n_units);
@@ -51,6 +61,8 @@ void IzhikevichNeuron::update(Eigen::Ref<Eigen::VectorXd> spikes, const Eigen::R
     int i;
 
     this->v_pre = this->v;
+    // this->v += (this->dt_C * (this->k * (this->v - this->vr_vec) * (this->v - this->vt_vec) - this->u + input));
+    // this->u += this->dt_a * (this->b * (this->v_pre - this->vr_vec) - this->u);
 
     for (i = 0; i < this->n_units; i++)
     {
