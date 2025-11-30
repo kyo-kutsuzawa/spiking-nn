@@ -9,9 +9,9 @@ def example_SNN():
     import tqdm
 
     # Setup constants
-    T = 20.0  # Total simulation time [s]
-    t0 = 1.0
-    t1 = 11.0
+    T = 30.0  # Total simulation time [s]
+    t0 = 5.0
+    t1 = 15.0
     dt = 1e-3  # Integral time interval [ms]
     nt = int(T / dt)  # Number of simulation loop
     step = 50
@@ -20,7 +20,14 @@ def example_SNN():
 
     # Setup a neuron
     n_units = 1000
-    nn = SpikingNeuralNetwork(n_units, 1, 1, dt * 1e3, 0.01, 5e3, 5e3, 1.0, 1000.0)
+    connection_ratio = 0.01
+    alpha = 1.0
+    G = 5e3
+    Q = 5e3
+    bias = 1000.0
+    nn = SpikingNeuralNetwork(
+        n_units, 1, 1, dt * 1e3, connection_ratio, G, Q, alpha, bias
+    )
     nn.reset_state()
 
     # Initialize variables

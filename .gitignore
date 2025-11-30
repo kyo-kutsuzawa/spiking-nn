@@ -1,5 +1,7 @@
 __pycache__
+.vscode
 build
 dataset
 eigen-5.0.0
 pybind11
+venv
