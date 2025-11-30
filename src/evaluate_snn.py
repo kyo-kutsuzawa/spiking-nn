@@ -20,12 +20,13 @@ def example_SNN():
 
     # Setup a neuron
     n_units = 1000
-    nn = SpikingNeuralNetwork(n_units, 1, 1, dt * 1e3, 0.1, 5e3, 5e3, 10.0, 1000.0)
+    nn = SpikingNeuralNetwork(n_units, 1, 1, dt * 1e3, 0.01, 5e3, 5e3, 1.0, 1000.0)
     nn.reset_state()
 
     # Initialize variables
     a = 2 * np.pi * 5.0
     t = 0.0
+    current = np.zeros((n_units,), dtype=np.float64)
     Xest: list[npt.NDArray[np.float64]] = []
     Xteach: list[npt.NDArray[np.float64]] = []
     R: list[npt.NDArray[np.float64]] = []
@@ -34,12 +35,16 @@ def example_SNN():
     # Simulation loop
     for i in tqdm.tqdm(range(nt)):
         # Update the SNN
-        current = np.zeros((1,), dtype=np.float64)
         nn.update(current)
         xest = nn.x.copy()
 
         # Calculate the ground-truth
-        x = np.array([np.sin(a * t)], dtype=np.float64)
+        _x = (
+            0.1 * np.sin(a * t)
+            + 0.5 * np.sin(0.7 * a * t + 1.0)
+            + 0.3 * np.sin(0.44 * a * t + 2.1)
+        )
+        x = np.array([_x], dtype=np.float64)
 
         # Train the decoder
         if t0 < t < t1:
@@ -64,8 +69,8 @@ def example_SNN():
     # Plot results
     tspace = np.arange(nt)[::step] * dt
     tspace = np.linspace(t_record, T, len(Xest))
-    ax1.plot(tspace, np.array(Xest))
     ax1.plot(tspace, np.array(Xteach))
+    ax1.plot(tspace, np.array(Xest))
     ax1.fill_between((t0, t1), -1.2, 1.2, color="black", alpha=0.3)
     ax2.plot(tspace, np.array(R))
     ax3.plot(tspace, np.array(V))

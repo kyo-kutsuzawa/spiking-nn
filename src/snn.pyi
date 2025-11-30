@@ -21,6 +21,10 @@ class SpikingNeuralNetwork:
     neurons: IzhikevichNeuron
     synapses: DoubleExponentialSynapticFilter
     x: npt.NDArray[np.float64]
+    # v: npt.NDArray[np.float64]
+    # u: npt.NDArray[np.float64]
+    # r: npt.NDArray[np.float64]
+    # h: npt.NDArray[np.float64]
     def __init__(
         self,
         n_units: int,

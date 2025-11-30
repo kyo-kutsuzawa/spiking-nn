@@ -10,4 +10,4 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-pybind11_add_module(snn bind_snn.cpp neurons.cpp synaptic_filters.cpp spiking_net.cpp)
+pybind11_add_module(snn bind_snn.cpp neurons.cpp synapses.cpp spiking_net.cpp)

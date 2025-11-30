@@ -21,10 +21,11 @@ IzhikevichNeuron::IzhikevichNeuron(int n_units, double dt)
     this->v_peak = 30.0;
     this->v_reset = -65.0;
 
-    // this->rand_engine = std::default_random_engine(rd());
-    // this->dist = std::uniform_real_distribution<double>(0.0, 1.0);
+    this->dt_C = this->dt / this->C;
+    this->dt_a = this->dt * this->a;
 
     this->v = Eigen::VectorXd(this->n_units);
+    this->v_pre = Eigen::VectorXd(this->n_units);
     this->u = Eigen::VectorXd(this->n_units);
     this->reset_state();
 }
@@ -45,17 +46,16 @@ void IzhikevichNeuron::reset_state()
     }
 }
 
-Eigen::VectorXd IzhikevichNeuron::update(Eigen::Ref<const Eigen::VectorXd> input)
+void IzhikevichNeuron::update(Eigen::Ref<Eigen::VectorXd> spikes, const Eigen::Ref<const Eigen::VectorXd> input)
 {
-    Eigen::VectorXd spikes = Eigen::VectorXd::Zero(this->n_units);
-    double vi;
     int i;
+
+    this->v_pre = this->v;
 
     for (i = 0; i < this->n_units; i++)
     {
-        vi = this->v[i];
-        this->v[i] += (this->dt / this->C * (this->k * (this->v[i] - this->vr) * (this->v[i] - this->vt) - this->u[i] + input[i]));
-        this->u[i] += this->dt * this->a * (this->b * (vi - this->vr) - this->u[i]);
+        this->v[i] += (this->dt_C * (this->k * (this->v[i] - this->vr) * (this->v[i] - this->vt) - this->u[i] + input[i]));
+        this->u[i] += this->dt_a * (this->b * (this->v_pre[i] - this->vr) - this->u[i]);
 
         if (this->v[i] >= this->v_peak)
         {
@@ -64,8 +64,6 @@ Eigen::VectorXd IzhikevichNeuron::update(Eigen::Ref<const Eigen::VectorXd> input
             this->v[i] = this->v_reset;
         }
     }
-
-    return spikes;
 }
 
 int IzhikevichNeuron::size()

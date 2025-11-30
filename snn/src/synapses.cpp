@@ -27,7 +27,7 @@ void DoubleExponentialSynapticFilter::reset_state()
     }
 }
 
-void DoubleExponentialSynapticFilter::update(Eigen::Ref<const Eigen::VectorXd> spikes)
+void DoubleExponentialSynapticFilter::update(const Eigen::Ref<const Eigen::VectorXd> spikes)
 {
     int i;
 

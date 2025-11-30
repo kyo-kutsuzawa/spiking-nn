@@ -20,9 +20,10 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     this->p = connection_ratio;
     this->G = G;
     this->Q = Q;
-    this->l = alpha;
+    this->alpha = alpha;
 
     this->phi = RowMatrixXd::Zero(out_size, n_units);
+
     this->eta = RowMatrixXd(n_units, out_size);
     for (i = 0; i < n_units; i++)
     {
@@ -50,16 +51,23 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     {
         this->i_bias[i] = bias;
     }
+
     this->P = RowMatrixXd::Identity(n_units, n_units);
     for (i = 0; i < n_units; i++)
     {
-        this->P(i, i) /= l;
+        this->P(i, i) /= alpha;
     }
 
     this->Gw0 = G * this->w0;
     this->Qeta = Q * this->eta;
+    this->errors = Eigen::VectorXd(out_size);
+    this->Pr = Eigen::VectorXd(n_units);
+    this->PrrP = RowMatrixXd(n_units, n_units);
 
-    this->x = Eigen::VectorXd(n_units);
+    this->current = Eigen::VectorXd(n_units);
+    this->spikes = Eigen::VectorXd(n_units);
+
+    this->x = Eigen::VectorXd(out_size);
     this->neurons = IzhikevichNeuron(n_units, dt);
     this->synapses = DoubleExponentialSynapticFilter(n_units, dt);
     this->reset_state();
@@ -69,7 +77,7 @@ void SpikingNeuralNetwork::reset_state()
 {
     int i;
 
-    for (i = 0; i < this->n_units; i++)
+    for (i = 0; i < this->out_size; i++)
     {
         this->x[i] = 0.0;
     }
@@ -78,35 +86,36 @@ void SpikingNeuralNetwork::reset_state()
     this->synapses.reset_state();
 }
 
-void SpikingNeuralNetwork::update(Eigen::Ref<const Eigen::VectorXd> input)
+void SpikingNeuralNetwork::update(const Eigen::Ref<const Eigen::VectorXd> input)
 {
-    Eigen::VectorXd current;
-    Eigen::VectorXd spikes;
+    int i;
 
     // Calculate input currents
-    current = this->Gw0 * this->synapses.r + this->Qeta * this->x + this->i_bias;
+    this->current = this->Gw0 * this->synapses.r + this->Qeta * this->x + this->i_bias + input;
+
+    for (i = 0; i < this->n_units; i++)
+    {
+        this->spikes[i] = 0.0;
+    }
 
     // Update the states of neurons and synapses
-    spikes = this->neurons.update(current);
-    this->synapses.update(spikes);
+    this->neurons.update(this->spikes, this->current);
+    this->synapses.update(this->spikes);
 
     this->x = this->phi * this->synapses.r;
 }
 
-void SpikingNeuralNetwork::train(Eigen::Ref<const Eigen::VectorXd> teaching_signal)
+void SpikingNeuralNetwork::train(const Eigen::Ref<const Eigen::VectorXd> teaching_signal)
 {
-    Eigen::VectorXd errors;
-    Eigen::VectorXd Pr;
     double rPr;
-    RowMatrixXd rPPr;
 
-    errors = this->x - teaching_signal;
+    this->errors = this->x - teaching_signal;
 
     // Update P
-    Pr = this->P * this->synapses.r;
+    this->Pr = this->P * this->synapses.r;
     rPr = this->synapses.r.dot(Pr);
-    rPPr = Pr * Pr.transpose();
-    this->P -= rPPr / (1.0 + rPr);
+    this->PrrP = Pr * Pr.transpose();
+    this->P -= PrrP / (1.0 + rPr);
 
     // Update phi
     this->phi -= errors * Pr.transpose();

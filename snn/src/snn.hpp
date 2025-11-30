@@ -12,12 +12,14 @@ public:
     IzhikevichNeuron();
     IzhikevichNeuron(int n_units, double dt);
     void reset_state();
-    Eigen::VectorXd update(Eigen::Ref<const Eigen::VectorXd> input);
+    void update(Eigen::Ref<Eigen::VectorXd> spikes, const Eigen::Ref<const Eigen::VectorXd> input);
     int size();
 
 private:
     int n_units;
     double dt;
+
+    Eigen::VectorXd v_pre;
 
     double C;       /**< @brief Membrane capacitance */
     double k;       /**< @brief Gain parameter of `vi` */
@@ -28,6 +30,9 @@ private:
     double vt;      /**< @brief Threshold voltage */
     double v_peak;  /**< @brief Peak voltage */
     double v_reset; /**< @brief Reset voltage */
+
+    double dt_C;
+    double dt_a;
 };
 
 class DoubleExponentialSynapticFilter
@@ -38,7 +43,7 @@ public:
     DoubleExponentialSynapticFilter();
     DoubleExponentialSynapticFilter(int n_units, double dt);
     void reset_state();
-    void update(Eigen::Ref<const Eigen::VectorXd> spikes);
+    void update(const Eigen::Ref<const Eigen::VectorXd> spikes);
     int size();
 
 private:
@@ -57,8 +62,8 @@ public:
     Eigen::VectorXd x;
     SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias);
     void reset_state();
-    void update(Eigen::Ref<const Eigen::VectorXd> input);
-    void train(Eigen::Ref<const Eigen::VectorXd> teaching_signal);
+    void update(const Eigen::Ref<const Eigen::VectorXd> input);
+    void train(const Eigen::Ref<const Eigen::VectorXd> teaching_signal);
     int size();
 
 private:
@@ -74,8 +79,13 @@ private:
     RowMatrixXd w0;         /**< @brief sparse and static weight matrix */
     RowMatrixXd phi;        /**< @brief decoder that is determined by RLS */
     Eigen::VectorXd i_bias; /**< @brief bias current */
-    double l;               /**< @brief regularization parameter */
+    double alpha;           /**< @brief regularization parameter */
     RowMatrixXd P;          /**< @brief used for RLS */
     RowMatrixXd Gw0;
     RowMatrixXd Qeta;
+    Eigen::VectorXd errors;
+    Eigen::VectorXd Pr;
+    RowMatrixXd PrrP;
+    Eigen::VectorXd current;
+    Eigen::VectorXd spikes;
 };
