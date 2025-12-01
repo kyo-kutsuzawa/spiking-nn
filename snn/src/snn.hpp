@@ -8,8 +8,8 @@ using RowMatrixXd = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen:
 class IzhikevichNeuron
 {
 public:
-    Eigen::VectorXd v;
-    Eigen::VectorXd u;
+    Eigen::VectorXd v; /**< @brief [mV] */
+    Eigen::VectorXd u; /**< @brief [pA] */
     IzhikevichNeuron();
     IzhikevichNeuron(int n_units, double dt);
     void reset_state();
@@ -17,23 +17,23 @@ public:
     int size();
 
 private:
-    int n_units;
-    double dt;
+    int n_units; /**< @brief Number of neurons */
+    double dt;   /**< @brief Computation interval [ms] */
 
     Eigen::VectorXd v_pre;
 
-    double C;       /**< @brief Membrane capacitance */
-    double k;       /**< @brief Gain parameter of `vi` */
-    double a;       /**< @brief Time scale parameter of `ui` */
-    double b;       /**< @brief Sensitivity parameter of `ui` */
-    double d;       /**< @brief After-spike reset parameter of `ui` */
-    double vr;      /**< @brief Resting membrane potential */
-    double vt;      /**< @brief Threshold voltage */
-    double v_peak;  /**< @brief Peak voltage */
-    double v_reset; /**< @brief Reset voltage */
+    double C;       /**< @brief Membrane capacitance [uF] */
+    double k;       /**< @brief Gain parameter of `vi` [nS] */
+    double a;       /**< @brief Time scale parameter of `ui` [(ms)^{-1}] */
+    double b;       /**< @brief Sensitivity parameter of `ui` [nS] */
+    double d;       /**< @brief After-spike reset parameter of `ui` [pA] */
+    double vr;      /**< @brief Resting membrane potential [mV] */
+    double vt;      /**< @brief Threshold voltage [mV] */
+    double v_peak;  /**< @brief Peak voltage [mV] */
+    double v_reset; /**< @brief Reset voltage [mV] */
 
-    double dt_C;
-    double dt_a;
+    double dt_C; /**< @brief dt / C [MOhm] */
+    double dt_a; /**< @brief dt * a [-] */
     Eigen::VectorXd vr_vec;
     Eigen::VectorXd vt_vec;
 };
@@ -53,8 +53,8 @@ private:
     int n_units;
     double dt;
 
-    double tau_r;
-    double tau_d;
+    double tau_r /**< @brief [ms] */;
+    double tau_d /**< @brief [ms] */;
 };
 
 class SpikingNeuralNetwork
@@ -81,7 +81,7 @@ private:
     Eigen::VectorXd eta;    /**< @brief encoder that contributes to the tuning preferences of the neurons in the network */
     RowMatrixXd w0;         /**< @brief sparse and static weight matrix */
     RowMatrixXd phi;        /**< @brief decoder that is determined by RLS */
-    Eigen::VectorXd i_bias; /**< @brief bias current */
+    Eigen::VectorXd i_bias; /**< @brief bias current [pA] */
     double alpha;           /**< @brief regularization parameter */
     RowMatrixXd P;          /**< @brief used for RLS */
     RowMatrixXd Gw0;

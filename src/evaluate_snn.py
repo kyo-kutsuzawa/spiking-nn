@@ -10,13 +10,15 @@ def example_SNN():
 
     # Setup constants
     T = 30.0  # Total simulation time [s]
-    t0 = 5.0
+    t0 = 0.0
     t1 = 15.0
-    dt = 1e-3  # Integral time interval [ms]
+    dt = 1.0 * 1e-3  # Integral time interval [s]
     nt = int(T / dt)  # Number of simulation loop
-    step = 50
     train_interval = 10
+
     t_record = 0.0
+    step = 1
+    n_units_observed = 1
 
     # Setup a neuron
     n_units = 1000
@@ -41,6 +43,9 @@ def example_SNN():
 
     # Simulation loop
     for i in tqdm.tqdm(range(nt)):
+        t = i * dt
+        current = np.random.normal(0, 100, (n_units,)).astype(np.float64)
+
         # Update the SNN
         nn.update(current)
         xest = nn.x.copy()
@@ -59,13 +64,12 @@ def example_SNN():
                 nn.train(x)
 
         # Record the current states
-        t += dt
-
         if t > t_record:
-            Xest.append(xest)
-            Xteach.append(x)
-            R.append(nn.synapses.r[0:5].copy())
-            V.append(nn.neurons.v[0:5].copy())
+            if i % step == 0:
+                Xest.append(xest)
+                Xteach.append(x)
+                R.append(nn.synapses.r[0:n_units_observed].copy())
+                V.append(nn.neurons.v[0:n_units_observed].copy())
 
     # Make a figure
     fig = plt.figure(figsize=(12, 4), constrained_layout=True)
@@ -74,7 +78,6 @@ def example_SNN():
     ax3 = fig.add_subplot(3, 1, 3)
 
     # Plot results
-    tspace = np.arange(nt)[::step] * dt
     tspace = np.linspace(t_record, T, len(Xest))
     ax1.plot(tspace, np.array(Xteach))
     ax1.plot(tspace, np.array(Xest))

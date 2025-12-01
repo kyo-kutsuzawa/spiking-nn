@@ -66,7 +66,7 @@ void IzhikevichNeuron::update(Eigen::Ref<Eigen::VectorXd> spikes, const Eigen::R
 
     for (i = 0; i < this->n_units; i++)
     {
-        this->v[i] += (this->dt_C * (this->k * (this->v[i] - this->vr) * (this->v[i] - this->vt) - this->u[i] + input[i]));
+        this->v[i] += this->dt_C * (this->k * (this->v[i] - this->vr) * (this->v[i] - this->vt) - this->u[i] + input[i]);
         this->u[i] += this->dt_a * (this->b * (this->v_pre[i] - this->vr) - this->u[i]);
 
         if (this->v[i] >= this->v_peak)
