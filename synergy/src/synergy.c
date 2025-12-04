@@ -10,6 +10,30 @@ double rand_uniform01(void)
     return (double)rand() / RAND_MAX;
 }
 
+int max_int(int a, int b)
+{
+    if (a > b)
+    {
+        return a;
+    }
+    else
+    {
+        return b;
+    }
+}
+
+int min_int(int a, int b)
+{
+    if (a < b)
+    {
+        return a;
+    }
+    else
+    {
+        return b;
+    }
+}
+
 int initialize_synergies(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_length, int n_dim, int refractory_period)
 {
     int i;
@@ -20,10 +44,14 @@ int initialize_synergies(struct TimeVaryingSynergy *synergies, int n_synergies, 
     synergies->n_dim = n_dim;
     synergies->refractory_period = refractory_period;
 
+    // Initialize synergies with random non-negative values
     for (i = 0; i < n_synergies * synergy_length * n_dim; i++)
     {
         synergies->synergies[i] = rand_uniform01();
     }
+
+    // Normalize synergies
+    normalize_synergies(synergies);
 
     // Return -1 if memory allocation failed
     if (synergies->synergies == NULL)
@@ -92,14 +120,9 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
     double *gradient;
     double *trajectory;
     double *trajectory_reconstructed;
-    double amp;
-    int tau;
-    double synergy_norm;
-    double synergy_norm_squared;
     int synergies_size;
     int trajectory_size;
-    int i, j, k, l, m;
-    int idx;
+    int i, j, k, l;
     int ret_val;
     int iter;
 
@@ -141,36 +164,24 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
             // Decode with the current synergies
             decode(trajectory_reconstructed, &activities, synergies, trajectory_length);
 
-            // Calculate gradient
-            for (j = 0; j < synergies->n_synergies; j++)
+            // Compute gradient in synergies
+            add_gradient(gradient, synergies, &activities, trajectory, trajectory_reconstructed, trajectory_length);
+        }
+
+        for (j = 0; j < synergies->n_synergies; j++)
+        {
+            double total_gradient = 0.0;
+            for (k = 0; k < synergies->synergy_length; k++)
             {
-                for (k = 0; k < n_activities_max; k++)
+                for (l = 0; l < n_dim; l++)
                 {
-                    amp = activities.amplitudes[j * n_activities_max + k];
-                    tau = activities.delays[j * n_activities_max + k];
-
-                    // (amp == 0) means it reached the max number of synergy activity
-                    if (amp == 0.0)
-                    {
-                        break;
-                    }
-
-                    for (l = 0; l < synergies->synergy_length; l++)
-                    {
-                        if (tau + l >= trajectory_length)
-                        {
-                            break;
-                        }
-
-                        for (m = 0; m < n_dim; m++)
-                        {
-                            idx = n_dim * (tau + l) + m;
-                            gradient[(synergies->synergy_length * n_dim) * j + n_dim * l + m] += amp * (trajectory[idx] - trajectory_reconstructed[idx]);
-                        }
-                    }
+                    total_gradient += gradient[(synergies->synergy_length * n_dim) * j + n_dim * k + l];
                 }
             }
+
+            printf("%d-th synergy gradient: %lf\n", j, total_gradient);
         }
+        printf("\n");
 
         // Update synergies based on the gradient descent
         for (i = 0; i < synergies_size; i++)
@@ -185,28 +196,7 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
         }
 
         // Normalize synergies
-        for (i = 0; i < synergies->n_synergies; i++)
-        {
-            // Calculate a norm of a synergy
-            synergy_norm_squared = 0.0;
-            for (j = 0; j < synergies->synergy_length; j++)
-            {
-                for (k = 0; k < n_dim; k++)
-                {
-                    synergy_norm_squared += pow(synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * j + k], 2);
-                }
-            }
-            synergy_norm = sqrt(synergy_norm_squared);
-
-            // Normalize the synergy
-            for (j = 0; j < synergies->synergy_length; j++)
-            {
-                for (k = 0; k < n_dim; k++)
-                {
-                    synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * j + k] /= synergy_norm;
-                }
-            }
-        }
+        normalize_synergies(synergies);
 
         if (print_progress)
         {
@@ -231,16 +221,23 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
     const int n_dim = synergies->n_dim;
     double *trajectory_copy = malloc(trajectory_length * n_dim * sizeof(double));
     int *synergy_available = calloc(activities->n_synergies * trajectory_length, sizeof(int)); // Whether the delay time of the synergy has been found
+    // double *synergy_norm_squared = calloc(activities->n_synergies, sizeof(double));
     double correlation;
     double max_correlation_value;
+    double amplitude;
     int max_correlation_time;
     int max_correlation_synergy_idx;
-    int idx_off_min;
-    int idx_off_max;
+    int idx_off_s;
+    int idx_off_e;
     int i, j, k, l, n;
 
     // Copy a trajectory
     memcpy(trajectory_copy, trajectory, trajectory_length * n_dim * sizeof(double));
+
+    for (i = 0; i < trajectory_length * n_dim; i++)
+    {
+        trajectory_copy[i] = trajectory[i];
+    }
 
     // Initialize activities
     for (i = 0; i < activities->n_synergies; i++)
@@ -251,6 +248,18 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
             activities->delays[i * activities->n_activities_max + j] = 0;
         }
     }
+
+    // Compute synergy's squared norm
+    // for (i = 0; i < activities->n_synergies; i++)
+    // {
+    //     for (k = 0; k < synergies->synergy_length; k++)
+    //     {
+    //         for (l = 0; l < n_dim; l++)
+    //         {
+    //             synergy_norm_squared[i] += pow(synergies->synergies[synergies->synergy_length * n_dim * i + n_dim * k + l], 2);
+    //         }
+    //     }
+    // }
 
     for (n = 0; n < activities->n_activities_max; n++)
     {
@@ -273,8 +282,19 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
                         {
                             // correlations[i, j] = sum_{k, l}( trajectory_copy[j + k, l] * synergies->synergies[i, k, l] )
                             correlation += trajectory_copy[n_dim * (j + k) + l] * synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * k + l];
+
+                            if (trajectory[n_dim * (j + k) + l] < 0.0)
+                            {
+                                printf("trajectory negative!\n");
+                            }
+                            // if (synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * k + l] < 0.0)
+                            // {
+                            //     printf("synergy negative!\n");
+                            // }
                         }
                     }
+
+                    // printf("r_%d[%d]=%lf\n", i, j, correlation);
 
                     if (correlation > max_correlation_value)
                     {
@@ -286,12 +306,16 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
             }
         }
 
-        if (max_correlation_value < amplitude_th)
+        amplitude = max_correlation_value;
+        // amplitude = max_correlation_value / synergy_norm_squared[max_correlation_synergy_idx];
+
+        if (amplitude < amplitude_th)
         {
+            // printf("break: %lf > %lf\n", amplitude, amplitude_th);
             break;
         }
 
-        activities->amplitudes[activities->n_activities_max * max_correlation_synergy_idx + n] = max_correlation_value;
+        activities->amplitudes[activities->n_activities_max * max_correlation_synergy_idx + n] = amplitude;
         activities->delays[activities->n_activities_max * max_correlation_synergy_idx + n] = max_correlation_time;
 
         // Compute residuals by subtracting the selected pattern
@@ -299,18 +323,49 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
         {
             for (l = 0; l < n_dim; l++)
             {
-                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= max_correlation_value * synergies->synergies[(synergies->synergy_length * n_dim) * max_correlation_synergy_idx + n_dim * k + l];
+                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= amplitude * synergies->synergies[synergies->synergy_length * n_dim * max_correlation_synergy_idx + n_dim * k + l];
+
+                if (trajectory_copy[n_dim * (max_correlation_time + k) + l] < 0.0)
+                {
+                    trajectory_copy[n_dim * (max_correlation_time + k) + l] = 0.0;
+                }
             }
         }
 
         // Remove the selected pattern and its surroundings
-        idx_off_min = max(max_correlation_time - synergies->refractory_period, 0);
-        idx_off_max = min(max_correlation_time + synergies->refractory_period, trajectory_length);
-        for (k = idx_off_min; k < idx_off_max; k++)
+        idx_off_s = max_int(max_correlation_time - synergies->refractory_period, 0);
+        idx_off_e = min_int(max_correlation_time + synergies->refractory_period, trajectory_length);
+        for (k = idx_off_s; k < idx_off_e; k++)
         {
-            synergy_available[activities->n_synergies * max_correlation_synergy_idx + k]++;
+            // synergy_available[trajectory_length * max_correlation_synergy_idx + k]++;
         }
     }
+
+    // for (i = 0; i < activities->n_synergies; i++)
+    // {
+    //     for (j = 0; j < trajectory_length - synergies->synergy_length; j++)
+    //     {
+    //         printf("%d, ", synergy_available[trajectory_length * i + j]);
+    //     }
+    //     printf("\n");
+    // }
+    // Print synergy activity
+
+    for (j = 0; j < synergies->n_synergies; j++)
+    {
+        for (k = 0; k < activities->n_activities_max; k++)
+        {
+            double amp = activities->amplitudes[activities->n_activities_max * j + k];
+            int tau = activities->delays[activities->n_activities_max * j + k];
+
+            if (amp == 0.0)
+            {
+                break;
+            }
+            printf("c_%d[%3d] = %lf\n", j, tau, amp);
+        }
+    }
+    printf("\n");
 
     free(trajectory_copy);
     free(synergy_available);
@@ -359,4 +414,73 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
         }
     }
     return 0;
+}
+
+void normalize_synergies(struct TimeVaryingSynergy *synergies)
+{
+    double squared_norm;
+    double norm;
+    int i, j, k;
+
+    for (i = 0; i < synergies->n_synergies; i++)
+    {
+        // Calculate a squared norm of a synergy
+        squared_norm = 0.0;
+        for (j = 0; j < synergies->synergy_length; j++)
+        {
+            for (k = 0; k < synergies->n_dim; k++)
+            {
+                squared_norm += pow(synergies->synergies[synergies->synergy_length * synergies->n_dim * i + synergies->n_dim * j + k], 2);
+            }
+        }
+        norm = sqrt(squared_norm);
+
+        // Normalize the synergy
+        for (j = 0; j < synergies->synergy_length; j++)
+        {
+            for (k = 0; k < synergies->n_dim; k++)
+            {
+                synergies->synergies[synergies->synergy_length * synergies->n_dim * i + synergies->n_dim * j + k] /= norm;
+            }
+        }
+    }
+}
+
+void add_gradient(double *gradient, const struct TimeVaryingSynergy *synergies, const struct TVSynergyActivities *activities, const double *trajectory, const double *trajectory_reconstructed, int trajectory_length)
+{
+    double amp;
+    int tau;
+    int idx;
+    int i, j, k, l;
+
+    for (i = 0; i < synergies->n_synergies; i++)
+    {
+        for (j = 0; j < activities->n_activities_max; j++)
+        {
+            amp = activities->amplitudes[i * activities->n_activities_max + j];
+            tau = activities->delays[i * activities->n_activities_max + j];
+
+            // (amp == 0) means it reached the max number of synergy activity
+            if (amp == 0.0)
+            {
+                break;
+            }
+
+            // printf("[%2d] %d-th activity: c_%d[%d] = %lf\n", i, j, i, tau, amp);
+
+            for (k = 0; k < synergies->synergy_length; k++)
+            {
+                if (tau + k >= trajectory_length)
+                {
+                    break;
+                }
+
+                for (l = 0; l < synergies->n_dim; l++)
+                {
+                    idx = synergies->n_dim * (tau + k) + l;
+                    gradient[(synergies->synergy_length * synergies->n_dim) * i + synergies->n_dim * k + l] += amp * (trajectory[idx] - trajectory_reconstructed[idx]);
+                }
+            }
+        }
+    }
 }

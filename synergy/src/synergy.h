@@ -27,4 +27,7 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
 int encode(struct TVSynergyActivities *activities, const double *trajectory, const struct TimeVaryingSynergy *synergies, int trajectory_length);
 int decode(double *trajectory, const struct TVSynergyActivities *activities, const struct TimeVaryingSynergy *synergies, int trajectory_length);
 
+void normalize_synergies(struct TimeVaryingSynergy *synergies);
+void add_gradient(double *gradient, const struct TimeVaryingSynergy *synergies, const struct TVSynergyActivities *activities, const double *trajectory, const double *trajectory_reconstructed, int trajectory_length);
+
 #endif
