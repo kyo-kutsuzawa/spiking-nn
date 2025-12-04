@@ -168,20 +168,21 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
             add_gradient(gradient, synergies, &activities, trajectory, trajectory_reconstructed, trajectory_length);
         }
 
-        for (j = 0; j < synergies->n_synergies; j++)
-        {
-            double total_gradient = 0.0;
-            for (k = 0; k < synergies->synergy_length; k++)
-            {
-                for (l = 0; l < n_dim; l++)
-                {
-                    total_gradient += gradient[(synergies->synergy_length * n_dim) * j + n_dim * k + l];
-                }
-            }
+        // // Print magnitude of gradients
+        // for (j = 0; j < synergies->n_synergies; j++)
+        // {
+        //     double total_gradient = 0.0;
+        //     for (k = 0; k < synergies->synergy_length; k++)
+        //     {
+        //         for (l = 0; l < n_dim; l++)
+        //         {
+        //             total_gradient += gradient[(synergies->synergy_length * n_dim) * j + n_dim * k + l];
+        //         }
+        //     }
 
-            printf("%d-th synergy gradient: %lf\n", j, total_gradient);
-        }
-        printf("\n");
+        //     printf("%d-th synergy gradient: %lf\n", j, total_gradient);
+        // }
+        // printf("\n");
 
         // Update synergies based on the gradient descent
         for (i = 0; i < synergies_size; i++)
@@ -219,25 +220,20 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
 {
     const double amplitude_th = 0.001;
     const int n_dim = synergies->n_dim;
+    int *activity_index = calloc(synergies->n_synergies, sizeof(int));
     double *trajectory_copy = malloc(trajectory_length * n_dim * sizeof(double));
     int *synergy_available = calloc(activities->n_synergies * trajectory_length, sizeof(int)); // Whether the delay time of the synergy has been found
-    // double *synergy_norm_squared = calloc(activities->n_synergies, sizeof(double));
     double correlation;
     double max_correlation_value;
-    double amplitude;
     int max_correlation_time;
     int max_correlation_synergy_idx;
+    int idx;
     int idx_off_s;
     int idx_off_e;
     int i, j, k, l, n;
 
     // Copy a trajectory
     memcpy(trajectory_copy, trajectory, trajectory_length * n_dim * sizeof(double));
-
-    for (i = 0; i < trajectory_length * n_dim; i++)
-    {
-        trajectory_copy[i] = trajectory[i];
-    }
 
     // Initialize activities
     for (i = 0; i < activities->n_synergies; i++)
@@ -248,18 +244,6 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
             activities->delays[i * activities->n_activities_max + j] = 0;
         }
     }
-
-    // Compute synergy's squared norm
-    // for (i = 0; i < activities->n_synergies; i++)
-    // {
-    //     for (k = 0; k < synergies->synergy_length; k++)
-    //     {
-    //         for (l = 0; l < n_dim; l++)
-    //         {
-    //             synergy_norm_squared[i] += pow(synergies->synergies[synergies->synergy_length * n_dim * i + n_dim * k + l], 2);
-    //         }
-    //     }
-    // }
 
     for (n = 0; n < activities->n_activities_max; n++)
     {
@@ -282,19 +266,8 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
                         {
                             // correlations[i, j] = sum_{k, l}( trajectory_copy[j + k, l] * synergies->synergies[i, k, l] )
                             correlation += trajectory_copy[n_dim * (j + k) + l] * synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * k + l];
-
-                            if (trajectory[n_dim * (j + k) + l] < 0.0)
-                            {
-                                printf("trajectory negative!\n");
-                            }
-                            // if (synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * k + l] < 0.0)
-                            // {
-                            //     printf("synergy negative!\n");
-                            // }
                         }
                     }
-
-                    // printf("r_%d[%d]=%lf\n", i, j, correlation);
 
                     if (correlation > max_correlation_value)
                     {
@@ -306,29 +279,22 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
             }
         }
 
-        amplitude = max_correlation_value;
-        // amplitude = max_correlation_value / synergy_norm_squared[max_correlation_synergy_idx];
-
-        if (amplitude < amplitude_th)
+        if (max_correlation_value < amplitude_th)
         {
-            // printf("break: %lf > %lf\n", amplitude, amplitude_th);
             break;
         }
 
-        activities->amplitudes[activities->n_activities_max * max_correlation_synergy_idx + n] = amplitude;
-        activities->delays[activities->n_activities_max * max_correlation_synergy_idx + n] = max_correlation_time;
+        idx = activities->n_activities_max * max_correlation_synergy_idx + activity_index[max_correlation_synergy_idx];
+        activities->amplitudes[idx] = max_correlation_value;
+        activities->delays[idx] = max_correlation_time;
+        activity_index[max_correlation_synergy_idx]++;
 
         // Compute residuals by subtracting the selected pattern
         for (k = 0; k < synergies->synergy_length; k++)
         {
             for (l = 0; l < n_dim; l++)
             {
-                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= amplitude * synergies->synergies[synergies->synergy_length * n_dim * max_correlation_synergy_idx + n_dim * k + l];
-
-                if (trajectory_copy[n_dim * (max_correlation_time + k) + l] < 0.0)
-                {
-                    trajectory_copy[n_dim * (max_correlation_time + k) + l] = 0.0;
-                }
+                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= max_correlation_value * synergies->synergies[synergies->synergy_length * n_dim * max_correlation_synergy_idx + n_dim * k + l];
             }
         }
 
@@ -337,7 +303,7 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
         idx_off_e = min_int(max_correlation_time + synergies->refractory_period, trajectory_length);
         for (k = idx_off_s; k < idx_off_e; k++)
         {
-            // synergy_available[trajectory_length * max_correlation_synergy_idx + k]++;
+            synergy_available[trajectory_length * max_correlation_synergy_idx + k] = 1;
         }
     }
 
@@ -349,24 +315,25 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
     //     }
     //     printf("\n");
     // }
+
     // Print synergy activity
+    // for (j = 0; j < synergies->n_synergies; j++)
+    // {
+    //     for (k = 0; k < activities->n_activities_max; k++)
+    //     {
+    //         double amp = activities->amplitudes[activities->n_activities_max * j + k];
+    //         int tau = activities->delays[activities->n_activities_max * j + k];
 
-    for (j = 0; j < synergies->n_synergies; j++)
-    {
-        for (k = 0; k < activities->n_activities_max; k++)
-        {
-            double amp = activities->amplitudes[activities->n_activities_max * j + k];
-            int tau = activities->delays[activities->n_activities_max * j + k];
+    //         if (amp == 0.0)
+    //         {
+    //             break;
+    //         }
+    //         printf("c_%d[%3d] = %lf\n", j, tau, amp);
+    //     }
+    // }
+    // printf("\n");
 
-            if (amp == 0.0)
-            {
-                break;
-            }
-            printf("c_%d[%3d] = %lf\n", j, tau, amp);
-        }
-    }
-    printf("\n");
-
+    free(activity_index);
     free(trajectory_copy);
     free(synergy_available);
 
@@ -413,6 +380,7 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
             }
         }
     }
+
     return 0;
 }
 
