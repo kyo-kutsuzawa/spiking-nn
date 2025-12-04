@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Final
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,13 +12,13 @@ import synergy
 
 def example_decode() -> None:
     # Define constants
-    n_synergies = 4
-    synergy_length = 20
-    n_dof = 2 * 2
-    refractory_period = int(synergy_length / 2)
-    n_activities_max = 50
-    n_iter = 100
-    lr = 0.01
+    n_synergies: Final[int] = 4
+    synergy_length: Final[int] = 20
+    n_dof: Final[int] = 2 * 2
+    refractory_period: Final[int] = int(synergy_length / 2)
+    n_activities_max: Final[int] = 50
+    n_iter: Final[int] = 100
+    lr: Final[float] = 0.01
 
     # Initialize time-varying synergies
     tvsynergies = synergy.TimeVaryingSynergy(
@@ -26,14 +27,14 @@ def example_decode() -> None:
 
     # Load a dataset
     dataset: list[npt.NDArray[np.float64]] = []
-    datasets_dir = os.path.join(os.path.basename(__file__), "../dataset13/*.csv")
+    datasets_dir = os.path.join(os.path.basename(__file__), "../dataset13/test/*.csv")
     filelist = glob.glob(datasets_dir)
     for filename in filelist:
         data = np.loadtxt(filename, delimiter=",")
         dataset.append(data)
 
     # Preprosessing the dataset
-    trajectories: list[list[list[float]]] = []
+    trajectories = convert_dataset(dataset)
 
     # Extract synergies
     tvsynergies = synergy.extract(
@@ -69,6 +70,47 @@ def example_decode() -> None:
         ax.set_xlim((0, synergy_length))
 
     plt.show()
+
+
+def convert_dataset(
+    dataset: list[npt.NDArray[np.float64]],
+) -> list[list[list[float]]]:
+    """
+    データセットを、時系列長が揃っていて正値化された速度軌道のリストに変換する
+
+    Parameters
+    ----------
+    dataset: list[npt.NDArray[np.float64]]
+        データセット
+
+    Returns
+    -------
+    trajectories: list[list[list[float]]]
+        速度軌道のリスト。時系列長が揃っていて、正値と負値とで次元が分けられている。
+    """
+
+    n_dim: Final[int] = 2
+    n_markers: Final[int] = 27
+    idx_start: Final[int] = 1 + 2 + n_markers
+    n_data: Final[int] = len(dataset)
+
+    # Compute the maximum trajectory length
+    max_length = 0
+    for data in dataset:
+        length = data.shape[0]
+        max_length = max(max_length, length)
+
+    # Create equalized-length trajectories
+    trajectories_array = np.zeros((n_data, max_length, n_dim * 2), dtype=np.float64)
+    for i, data in enumerate(dataset):
+        length = data.shape[0]
+        data_positive = np.maximum(data[:, idx_start : idx_start + 2], 0.0)
+        data_negative = np.maximum(-data[:, idx_start : idx_start + 2], 0.0)
+
+        trajectories_array[i, 0:length, :n_dim] = data_positive
+        trajectories_array[i, 0:length, n_dim:] = data_negative
+
+    return trajectories_array.tolist()
 
 
 #     fig = plt.figure(figsize=(6, 4), constrained_layout=True)
