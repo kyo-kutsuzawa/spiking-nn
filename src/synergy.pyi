@@ -27,6 +27,7 @@ def extract(
     n_activities_max: int,
     n_iter: int,
     lr: float,
+    print_progress: bool,
 ) -> TimeVaryingSynergy: ...
 def encode(
     trajectory: list[list[float]], synergies: TimeVaryingSynergy, n_activities_max: int

@@ -5,6 +5,7 @@ from typing import Final
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+import tqdm
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
 import synergy
@@ -18,7 +19,7 @@ def example_decode() -> None:
     refractory_period: Final[int] = int(synergy_length / 2)
     n_activities_max: Final[int] = 50
     n_iter: Final[int] = 100
-    lr: Final[float] = 0.01
+    lr: Final[float] = 1.0
 
     # Initialize time-varying synergies
     tvsynergies = synergy.TimeVaryingSynergy(
@@ -47,6 +48,7 @@ def example_decode() -> None:
         n_activities_max,
         n_iter,
         lr,
+        True,
     )
 
     synergies = np.array(tvsynergies.get_synergies(), dtype=np.float64)

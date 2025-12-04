@@ -1,7 +1,9 @@
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
 #include "synergy.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 double rand_uniform01(void)
 {
@@ -10,11 +12,18 @@ double rand_uniform01(void)
 
 int initialize_synergies(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_length, int n_dim, int refractory_period)
 {
+    int i;
+
     synergies->synergies = (double *)malloc(n_synergies * synergy_length * n_dim * sizeof(double));
     synergies->n_synergies = n_synergies;
     synergies->synergy_length = synergy_length;
     synergies->n_dim = n_dim;
     synergies->refractory_period = refractory_period;
+
+    for (i = 0; i < n_synergies * synergy_length * n_dim; i++)
+    {
+        synergies->synergies[i] = rand_uniform01();
+    }
 
     // Return -1 if memory allocation failed
     if (synergies->synergies == NULL)
@@ -77,7 +86,7 @@ int finalize_activities(struct TVSynergyActivities *activities)
     return 0;
 }
 
-int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, int n_data, int trajectory_length, int n_dim, int n_iter, double lr, int n_activities_max)
+int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, int n_data, int trajectory_length, int n_dim, int n_iter, double lr, int n_activities_max, int print_progress)
 {
     struct TVSynergyActivities activities;
     double *gradient;
@@ -111,11 +120,6 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
     if ((gradient == NULL) || (trajectory_reconstructed == NULL) || (ret_val == -1))
     {
         return -1;
-    }
-
-    for (i = 0; i < synergies_size; i++)
-    {
-        synergies->synergies[i] = rand_uniform01();
     }
 
     for (iter = 0; iter < n_iter; iter++)
@@ -172,6 +176,12 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
         for (i = 0; i < synergies_size; i++)
         {
             synergies->synergies[i] -= -2.0 * lr * gradient[i];
+
+            // Clip to non-negative values
+            if (synergies->synergies[i] < 0.0)
+            {
+                synergies->synergies[i] = 0.0;
+            }
         }
 
         // Normalize synergies
@@ -197,6 +207,15 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
                 }
             }
         }
+
+        if (print_progress)
+        {
+            printf("Extraction progress: %4.1lf%%\r", (double)(iter + 1) / (double)n_iter * 100.0);
+        }
+    }
+    if (print_progress)
+    {
+        printf("\n");
     }
 
     finalize_activities(&activities);
@@ -208,6 +227,94 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
 
 int encode(struct TVSynergyActivities *activities, const double *trajectory, const struct TimeVaryingSynergy *synergies, int trajectory_length)
 {
+    const double amplitude_th = 0.001;
+    const int n_dim = synergies->n_dim;
+    double *trajectory_copy = malloc(trajectory_length * n_dim * sizeof(double));
+    int *synergy_available = calloc(activities->n_synergies * trajectory_length, sizeof(int)); // Whether the delay time of the synergy has been found
+    double correlation;
+    double max_correlation_value;
+    int max_correlation_time;
+    int max_correlation_synergy_idx;
+    int idx_off_min;
+    int idx_off_max;
+    int i, j, k, l, n;
+
+    // Copy a trajectory
+    memcpy(trajectory_copy, trajectory, trajectory_length * n_dim * sizeof(double));
+
+    // Initialize activities
+    for (i = 0; i < activities->n_synergies; i++)
+    {
+        for (j = 0; j < activities->n_activities_max; j++)
+        {
+            activities->amplitudes[i * activities->n_activities_max + j] = 0.0;
+            activities->delays[i * activities->n_activities_max + j] = 0;
+        }
+    }
+
+    for (n = 0; n < activities->n_activities_max; n++)
+    {
+        max_correlation_value = 0.0;
+        max_correlation_time = 0;
+        max_correlation_synergy_idx = 0;
+
+        // Compute correlations for all possible patterns
+        for (i = 0; i < activities->n_synergies; i++)
+        {
+            for (j = 0; j < trajectory_length - synergies->synergy_length; j++)
+            {
+                if (synergy_available[trajectory_length * i + j] == 0)
+                {
+                    // Calculate correlations at time j with i-th synergy
+                    correlation = 0.0;
+                    for (k = 0; k < synergies->synergy_length; k++)
+                    {
+                        for (l = 0; l < n_dim; l++)
+                        {
+                            // correlations[i, j] = sum_{k, l}( trajectory_copy[j + k, l] * synergies->synergies[i, k, l] )
+                            correlation += trajectory_copy[n_dim * (j + k) + l] * synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * k + l];
+                        }
+                    }
+
+                    if (correlation > max_correlation_value)
+                    {
+                        max_correlation_value = correlation;
+                        max_correlation_time = j;
+                        max_correlation_synergy_idx = i;
+                    }
+                }
+            }
+        }
+
+        if (max_correlation_value < amplitude_th)
+        {
+            break;
+        }
+
+        activities->amplitudes[activities->n_activities_max * max_correlation_synergy_idx + n] = max_correlation_value;
+        activities->delays[activities->n_activities_max * max_correlation_synergy_idx + n] = max_correlation_time;
+
+        // Compute residuals by subtracting the selected pattern
+        for (k = 0; k < synergies->synergy_length; k++)
+        {
+            for (l = 0; l < n_dim; l++)
+            {
+                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= max_correlation_value * synergies->synergies[(synergies->synergy_length * n_dim) * max_correlation_synergy_idx + n_dim * k + l];
+            }
+        }
+
+        // Remove the selected pattern and its surroundings
+        idx_off_min = max(max_correlation_time - synergies->refractory_period, 0);
+        idx_off_max = min(max_correlation_time + synergies->refractory_period, trajectory_length);
+        for (k = idx_off_min; k < idx_off_max; k++)
+        {
+            synergy_available[activities->n_synergies * max_correlation_synergy_idx + k]++;
+        }
+    }
+
+    free(trajectory_copy);
+    free(synergy_available);
+
     return 0;
 }
 
@@ -224,7 +331,7 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
         trajectory[i] = 0.0;
     }
 
-    for (i = 0; i < synergies->n_synergies; i++)
+    for (i = 0; i < activities->n_synergies; i++)
     {
         for (j = 0; j < activities->n_activities_max; j++)
         {
@@ -253,127 +360,3 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
     }
     return 0;
 }
-
-// void TimeVaryingSynergy::extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_iter, double lr)
-// {
-//     const int amplitude_th = 0.001;
-//     int n_trajectories = trajectories.size();
-//     int iter;
-//     int i, j, k;
-//     int trajectory_length;
-//     std::vector<std::vector<std::vector<double>>> gradient(this->n_synergies, std::vector<std::vector<double>>(this->synergy_length, std::vector<double>(this->n_dims)));
-//     std::vector<std::vector<std::vector<double>>> amplitudes(n_trajectories, std::vector<std::vector<double>>());
-//     std::vector<std::vector<std::vector<int>>> delays(n_trajectories, std::vector<std::vector<int>>());
-//     std::vector<std::vector<double>> trajectory_reconstructed;
-
-//     for (iter = 0; iter < n_iter; iter++)
-//     {
-//         // Reset the gradient
-//         for (i = 0; i < this->n_synergies; i++)
-//         {
-//             for (j = 0; j < this->synergy_length; j++)
-//             {
-//                 std::fill(gradient[i][j].begin(), gradient[i][j].end(), 0.0);
-//             }
-//         }
-
-//         // Compute gradient for each trajectory
-//         for (i = 0; i < n_trajectories; i++)
-//         {
-//             // Get the trajectory length
-//             trajectory_length = trajectories[i].size();
-
-//             trajectory_reconstructed = std::vector<std::vector<double>>(trajectory_length, std::vector<double>(this->n_dims, 0.0));
-
-//             // Encode with the current synergies
-//             this->encode(trajectories[i], amplitudes[i], delays[i]);
-
-//             // Decode with the current synergies
-//             this->decode(amplitudes[i], delays[i], trajectory_reconstructed);
-//         }
-
-//         // Update synergies based on the gradient descent
-//     }
-
-//     // n_data = len(dataset)
-//     // grad = np.zeros_like(synergies)
-
-//     // for n in range(n_data):
-//     //     data = dataset[n]
-
-//     //     # Compute reconstruction data
-//     //     data_est = np.zeros_like(data)
-//     //     for k in range(synergies.shape[0]):
-//     //         for ts, c in zip(delays[n][k], amplitude[n][k]):
-//     //             data_est[ts:ts+synergies.shape[1], :] += c * synergies[k, :, :]
-
-//     //     # Compute the gradient
-//     //     deviation = data - data_est
-//     //     for k in range(synergies.shape[0]):
-//     //         for ts, c in zip(delays[n][k], amplitude[n][k]):
-//     //             #data_est[ts:ts+synergies.shape[1], :] += c * synergies[k, :, :]
-//     //             grad[k, :, :] += deviation[ts:ts+synergies.shape[1], :] * c
-
-//     // # Compute the gradient
-//     // grad = grad * -2
-
-//     // # Update the amplitude
-//     // synergies = synergies - mu * grad
-//     // synergies = np.clip(synergies, 0.0, None)  # Limit to non-negative values
-
-//     // for k in range(synergies.shape[0]):
-//     //     norm = np.sqrt(np.sum(np.square(synergies[k])))
-//     //     synergies[k] = synergies[k] / float(norm)
-
-//     // return synergies
-
-//     // for i in range(args.n_iter):
-//     //     delays, amplitude = timevarying.match_synergies(movements, synergies, args.n_synergies_use, refractory_period)
-
-//     //     r2 = timevarying.compute_R2(movements, synergies, amplitude, delays)
-//     //     print("Iter {:4d}: R2 = {}".format(i, r2))
-
-//     //     # Save synergies
-//     //     np.save(os.path.join(args.out, "synergy.npy"), synergies)
-
-//     //     synergies = timevarying.update_synergies(movements, synergies, amplitude, delays, args.lr)
-// }
-
-// void TimeVaryingSynergy::encode(const std::vector<std::vector<double>> &trajectory, std::vector<std::vector<double>> &amplitudes, std::vector<std::vector<int>> &delays)
-// {
-//     amplitudes = std::vector<std::vector<double>>(this->n_synergies, std::vector<double>());
-//     delays = std::vector<std::vector<int>>(this->n_synergies, std::vector<int>());
-// }
-
-// void TimeVaryingSynergy::decode(const std::vector<std::vector<double>> &amplitudes, const std::vector<std::vector<int>> &delays, std::vector<std::vector<double>> &trajectory)
-// {
-//     int trajectory_length = trajectory.size();
-//     int n_activities;
-//     double amp;
-//     int tau;
-//     int i, j, k, l;
-
-//     for (i = 0; i < this->n_synergies; i++)
-//     {
-//         n_activities = amplitudes[i].size();
-
-//         for (j = 0; j < n_activities; j++)
-//         {
-//             amp = amplitudes[i][j];
-//             tau = delays[i][j];
-
-//             for (k = 0; k < this->synergy_length; k++)
-//             {
-//                 for (l = 0; l < this->n_dims; l++)
-//                 {
-//                     trajectory[tau + k][l] += amp * this->synergies[i][k][l];
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// // inline double &TimeVaryingSynergy::synergies_at(int i, int j, int k)
-// // {
-// //     return this->synergies[i * (this->n_synergies * this->synergy_length) + j * this->synergy_length + k];
-// // }

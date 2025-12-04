@@ -1,10 +1,10 @@
-#include <vector>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 extern "C"
 {
 #include "synergy.h"
 }
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <vector>
 
 class _TimeVaryingSynergy
 {
@@ -15,7 +15,7 @@ public:
     std::vector<std::vector<std::vector<double>>> get_synergies();
 };
 
-_TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_synergies, int synergy_length, int refractory_period, int n_activities_max, int n_iter, double lr);
+_TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_synergies, int synergy_length, int refractory_period, int n_activities_max, int n_iter, double lr, bool print_progress);
 pybind11::tuple _encode(const std::vector<std::vector<double>> &trajectory, const _TimeVaryingSynergy &synergies, int n_activities_max);
 std::vector<std::vector<double>> _decode(const std::vector<std::vector<double>> &amplitudes, const std::vector<std::vector<int>> &delays, const _TimeVaryingSynergy &synergies, int trajectory_length);
 
@@ -59,7 +59,7 @@ std::vector<std::vector<std::vector<double>>> _TimeVaryingSynergy::get_synergies
     return _synergies;
 }
 
-_TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_synergies, int synergy_length, int refractory_period, int n_activities_max, int n_iter, double lr)
+_TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_synergies, int synergy_length, int refractory_period, int n_activities_max, int n_iter, double lr, bool print_progress)
 {
     size_t n_data = trajectories.size();
     size_t trajectory_length = trajectories[0].size();
@@ -79,7 +79,7 @@ _TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>>
         }
     }
 
-    extract(&(synergies.data), trajectories_array, (int)n_data, (int)trajectory_length, (int)n_dim, n_iter, lr, n_activities_max);
+    extract(&(synergies.data), trajectories_array, (int)n_data, (int)trajectory_length, (int)n_dim, n_iter, lr, n_activities_max, (int)print_progress);
 
     free(trajectories_array);
 
