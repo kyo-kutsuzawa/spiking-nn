@@ -1,6 +1,12 @@
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "synergy.h"
+
+double rand_uniform01(void)
+{
+    return (double)rand() / RAND_MAX;
+}
 
 int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_length, int n_dim, int refractory_period, const double *trajectories, int n_data, int trajectory_length, int n_iter, double lr, int n_activities_max)
 {
@@ -18,11 +24,13 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
     int idx;
     int iter;
 
+    srand((unsigned int)time(NULL));
+
     synergies_size = n_synergies * synergy_length * n_dim;
     trajectory_size = trajectory_length * n_dim;
 
     // Initialize synergies
-    synergies->synergies = (double *)calloc(synergies_size, sizeof(double));
+    synergies->synergies = (double *)malloc(synergies_size * sizeof(double));
     synergies->n_synergies = n_synergies;
     synergies->synergy_length = synergy_length;
     synergies->n_dim = n_dim;
@@ -42,6 +50,11 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
     if ((synergies->synergies == NULL) || (gradient == NULL) || (trajectory_reconstructed == NULL) || (activities.amplitudes == NULL) || (activities.delays == NULL))
     {
         return -1;
+    }
+
+    for (i = 0; i < synergies_size; i++)
+    {
+        synergies->synergies[i] = rand_uniform01();
     }
 
     for (iter = 0; iter < n_iter; iter++)

@@ -1,5 +1,4 @@
 class TimeVaryingSynergy:
-    synergies: list[list[list[float]]]
     def __init__(
         self, n_synergies: int, synergy_length: int, n_dim: int, refractory_period: int
     ) -> None: ...
@@ -18,6 +17,7 @@ class TimeVaryingSynergy:
         delays: list[list[int]],
         trajectory: list[list[float]],
     ) -> None: ...
+    def get_synergies(self) -> list[list[list[float]]]: ...
 
 def extract(
     trajectories: list[list[list[float]]],

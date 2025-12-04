@@ -14,7 +14,7 @@ def example_decode() -> None:
     # Define constants
     n_synergies: Final[int] = 4
     synergy_length: Final[int] = 20
-    n_dof: Final[int] = 2 * 2
+    n_dof: Final[int] = 2
     refractory_period: Final[int] = int(synergy_length / 2)
     n_activities_max: Final[int] = 50
     n_iter: Final[int] = 100
@@ -47,7 +47,7 @@ def example_decode() -> None:
         lr,
     )
 
-    synergies = np.array(tvsynergies.synergies, dtype=np.float64)
+    synergies = np.array(tvsynergies.get_synergies(), dtype=np.float64)
 
     fig = plt.figure(figsize=(6, 4), constrained_layout=True)
     gs_master = GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[2, 1])
