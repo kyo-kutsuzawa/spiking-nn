@@ -35,6 +35,8 @@ def example_decode() -> None:
 
     # Preprosessing the dataset
     trajectories = convert_dataset(dataset)
+    n_data: Final[int] = len(trajectories)
+    trajectory_length = len(trajectories[0])
 
     # Extract synergies
     tvsynergies = synergy.extract(
@@ -52,6 +54,39 @@ def example_decode() -> None:
     fig = plt.figure(figsize=(6, 4), constrained_layout=True)
     gs_master = GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[2, 1])
 
+    # Plot reconstruction data
+    gs_data = GridSpecFromSubplotSpec(
+        nrows=n_dof * 2, ncols=1, subplot_spec=gs_master[0, 0]
+    )
+    axes = [fig.add_subplot(gs_data[m, 0]) for m in range(n_dof * 2)]
+    for n in range(n_data):
+        trajectory = np.array(trajectories[n], dtype=np.float64)
+
+        amplitudes, delays = synergy.encode(
+            trajectory.tolist(), tvsynergies, n_activities_max
+        )
+        trajectory_est_list = synergy.decode(
+            amplitudes, delays, tvsynergies, trajectory_length
+        )
+        trajectory_est = np.array(trajectory_est_list, dtype=np.float64)
+
+        for m, ax in enumerate(axes):
+            ax.plot(
+                np.arange(len(trajectory)),
+                trajectory[:, m],
+                lw=2,
+                ls=":",
+                color="C{}".format(n),
+            )
+            ax.plot(
+                np.arange(len(trajectory)),
+                trajectory_est[:, m],
+                lw=1,
+                color="C{}".format(n),
+            )
+            ax.set_xlim((0, len(trajectory) - 1))
+
+    # Plot extracted synergies
     gs_synergies = GridSpecFromSubplotSpec(
         nrows=n_synergies, ncols=1, subplot_spec=gs_master[0, 1]
     )

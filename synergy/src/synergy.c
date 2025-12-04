@@ -8,7 +8,76 @@ double rand_uniform01(void)
     return (double)rand() / RAND_MAX;
 }
 
-int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_length, int n_dim, int refractory_period, const double *trajectories, int n_data, int trajectory_length, int n_iter, double lr, int n_activities_max)
+int initialize_synergies(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_length, int n_dim, int refractory_period)
+{
+    synergies->synergies = (double *)malloc(n_synergies * synergy_length * n_dim * sizeof(double));
+    synergies->n_synergies = n_synergies;
+    synergies->synergy_length = synergy_length;
+    synergies->n_dim = n_dim;
+    synergies->refractory_period = refractory_period;
+
+    // Return -1 if memory allocation failed
+    if (synergies->synergies == NULL)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int finalize_synergies(struct TimeVaryingSynergy *synergies)
+{
+    if (synergies->synergies != NULL)
+    {
+        free(synergies->synergies);
+        synergies->synergies = NULL;
+    }
+
+    synergies->n_synergies = 0;
+    synergies->synergy_length = 0;
+    synergies->n_dim = 0;
+    synergies->refractory_period = 0;
+
+    return 0;
+}
+
+int initialize_activities(struct TVSynergyActivities *activities, int n_synergies, int n_activities_max)
+{
+    activities->amplitudes = (double *)calloc(n_synergies * n_activities_max, sizeof(double));
+    activities->delays = (int *)calloc(n_synergies * n_activities_max, sizeof(int));
+    activities->n_synergies = n_synergies;
+    activities->n_activities_max = n_activities_max;
+
+    // Return -1 if memory allocation failed
+    if ((activities->amplitudes == NULL) || (activities->delays == NULL))
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int finalize_activities(struct TVSynergyActivities *activities)
+{
+    if (activities->amplitudes != NULL)
+    {
+        free(activities->amplitudes);
+        activities->amplitudes = NULL;
+    }
+
+    if (activities->delays != NULL)
+    {
+        free(activities->delays);
+        activities->delays = NULL;
+    }
+
+    activities->n_synergies = 0;
+    activities->n_activities_max = 0;
+
+    return 0;
+}
+
+int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, int n_data, int trajectory_length, int n_dim, int n_iter, double lr, int n_activities_max)
 {
     struct TVSynergyActivities activities;
     double *gradient;
@@ -22,32 +91,24 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
     int trajectory_size;
     int i, j, k, l, m;
     int idx;
+    int ret_val;
     int iter;
 
     srand((unsigned int)time(NULL));
 
-    synergies_size = n_synergies * synergy_length * n_dim;
+    n_dim = synergies->n_dim;
+    synergies_size = synergies->n_synergies * synergies->synergy_length * synergies->n_dim;
     trajectory_size = trajectory_length * n_dim;
 
-    // Initialize synergies
-    synergies->synergies = (double *)malloc(synergies_size * sizeof(double));
-    synergies->n_synergies = n_synergies;
-    synergies->synergy_length = synergy_length;
-    synergies->n_dim = n_dim;
-    synergies->refractory_period = refractory_period;
-
     // Initialize synergy activities
-    activities.amplitudes = (double *)calloc(n_synergies * n_activities_max, sizeof(double));
-    activities.delays = (int *)calloc(n_synergies * n_activities_max, sizeof(int));
-    activities.n_synergies = n_synergies;
-    activities.n_activities_max = n_activities_max;
+    ret_val = initialize_activities(&activities, synergies->n_synergies, n_activities_max);
 
     // Initialize array variables
     gradient = (double *)malloc(synergies_size * sizeof(double));
     trajectory_reconstructed = (double *)calloc(trajectory_size, sizeof(double));
 
     // Return -1 if memory allocation failed
-    if ((synergies->synergies == NULL) || (gradient == NULL) || (trajectory_reconstructed == NULL) || (activities.amplitudes == NULL) || (activities.delays == NULL))
+    if ((gradient == NULL) || (trajectory_reconstructed == NULL) || (ret_val == -1))
     {
         return -1;
     }
@@ -71,13 +132,13 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
             trajectory = (double *)&trajectories[i * trajectory_size];
 
             // Encode with the current synergies
-            encode(&activities, trajectory, synergies, trajectory_length, n_dim);
+            encode(&activities, trajectory, synergies, trajectory_length);
 
             // Decode with the current synergies
             decode(trajectory_reconstructed, &activities, synergies, trajectory_length);
 
             // Calculate gradient
-            for (j = 0; j < n_synergies; j++)
+            for (j = 0; j < synergies->n_synergies; j++)
             {
                 for (k = 0; k < n_activities_max; k++)
                 {
@@ -90,7 +151,7 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
                         break;
                     }
 
-                    for (l = 0; l < synergy_length; l++)
+                    for (l = 0; l < synergies->synergy_length; l++)
                     {
                         if (tau + l >= trajectory_length)
                         {
@@ -100,7 +161,7 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
                         for (m = 0; m < n_dim; m++)
                         {
                             idx = n_dim * (tau + l) + m;
-                            gradient[(synergy_length * n_dim) * j + n_dim * l + m] += amp * (trajectory[idx] - trajectory_reconstructed[idx]);
+                            gradient[(synergies->synergy_length * n_dim) * j + n_dim * l + m] += amp * (trajectory[idx] - trajectory_reconstructed[idx]);
                         }
                     }
                 }
@@ -114,41 +175,39 @@ int extract(struct TimeVaryingSynergy *synergies, int n_synergies, int synergy_l
         }
 
         // Normalize synergies
-        for (i = 0; i < n_synergies; i++)
+        for (i = 0; i < synergies->n_synergies; i++)
         {
             // Calculate a norm of a synergy
             synergy_norm_squared = 0.0;
-            for (j = 0; j < synergy_length; j++)
+            for (j = 0; j < synergies->synergy_length; j++)
             {
                 for (k = 0; k < n_dim; k++)
                 {
-                    synergy_norm_squared += pow(synergies->synergies[(synergy_length * n_dim) * i + n_dim * j + k], 2);
+                    synergy_norm_squared += pow(synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * j + k], 2);
                 }
             }
             synergy_norm = sqrt(synergy_norm_squared);
 
             // Normalize the synergy
-            for (j = 0; j < synergy_length; j++)
+            for (j = 0; j < synergies->synergy_length; j++)
             {
                 for (k = 0; k < n_dim; k++)
                 {
-                    synergies->synergies[(synergy_length * n_dim) * i + n_dim * j + k] /= synergy_norm;
+                    synergies->synergies[(synergies->synergy_length * n_dim) * i + n_dim * j + k] /= synergy_norm;
                 }
             }
         }
     }
 
+    finalize_activities(&activities);
+    free(gradient);
+    free(trajectory_reconstructed);
+
     return 0;
 }
 
-int encode(struct TVSynergyActivities *activities, const double *trajectory, const struct TimeVaryingSynergy *synergies, int trajectory_length, int n_dim)
+int encode(struct TVSynergyActivities *activities, const double *trajectory, const struct TimeVaryingSynergy *synergies, int trajectory_length)
 {
-    // // Initialize synergy activities
-    // activities.amplitudes = (double *)calloc(n_synergies * n_activities_max, sizeof(double));
-    // activities.delays = (int *)calloc(n_synergies * n_activities_max, sizeof(int));
-    // activities.n_synergies = n_synergies;
-    // activities.n_activities_max = n_activities_max;
-
     return 0;
 }
 
@@ -160,16 +219,9 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
     int idx;
 
     // Initialize a trajectory
-    if (trajectory == NULL)
+    for (i = 0; i < trajectory_length * synergies->n_dim; i++)
     {
-        trajectory = (double *)calloc(trajectory_length * synergies->n_dim, sizeof(double));
-    }
-    else
-    {
-        for (i = 0; i < trajectory_length * synergies->n_dim; i++)
-        {
-            trajectory[i] = 0.0;
-        }
+        trajectory[i] = 0.0;
     }
 
     for (i = 0; i < synergies->n_synergies; i++)
@@ -186,6 +238,11 @@ int decode(double *trajectory, const struct TVSynergyActivities *activities, con
 
             for (k = 0; k < synergies->synergy_length; k++)
             {
+                if (tau + k >= trajectory_length)
+                {
+                    break;
+                }
+
                 for (l = 0; l < synergies->n_dim; l++)
                 {
                     idx = synergies->synergy_length * synergies->n_dim * i + synergies->n_dim * k + l;
