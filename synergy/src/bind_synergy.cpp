@@ -57,7 +57,7 @@ _TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>>
 
     for (size_t i = 0; i < n_data; i++)
     {
-        for (size_t j = 0; i < trajectory_length; j++)
+        for (size_t j = 0; j < trajectory_length; j++)
         {
             for (size_t k = 0; k < n_dim; k++)
             {
