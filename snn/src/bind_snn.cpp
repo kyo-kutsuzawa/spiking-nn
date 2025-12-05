@@ -25,7 +25,7 @@ PYBIND11_MODULE(snn, m)
         .def_readonly("h", &DoubleExponentialSynapticFilter::h);
 
     pybind11::class_<SpikingNeuralNetwork>(m, "SpikingNeuralNetwork")
-        .def(pybind11::init<int, int, int, double, double, double, double, double, double>())
+        .def(pybind11::init<int, int, int, double, double, double, double, double, double, double>())
         .def("reset_state", &SpikingNeuralNetwork::reset_state)
         .def("update", &SpikingNeuralNetwork::update)
         .def("train", &SpikingNeuralNetwork::train)

@@ -57,15 +57,25 @@ def train_synergy_model(args: Args) -> None:
     in_dim: Final[int] = 1
     out_dim: Final[int] = trajectories.shape[1]
 
-    # Setup a neuron
+    # Setup an SNN
     n_units: Final[int] = 1000
-    connection_ratio: Final[float] = 0.01
+    connection_ratio_x: Final[float] = 0.01
+    connection_ratio_in: Final[float] = 1.0
     alpha: Final[float] = 1.0
     G: Final[float] = 5e3
     Q: Final[float] = 5e3
     bias: Final[float] = 1000.0
     nn = SpikingNeuralNetwork(
-        n_units, in_dim, out_dim, dt * 1e3, connection_ratio, G, Q, alpha, bias
+        n_units,
+        in_dim,
+        out_dim,
+        dt * 1e3,
+        connection_ratio_x,
+        connection_ratio_in,
+        G,
+        Q,
+        alpha,
+        bias,
     )
     nn.reset_state()
 
@@ -160,15 +170,25 @@ def train_activity_model(args: Args) -> None:
     t1: Final[float] = t_episode * n_train_iter
     nt: Final[int] = int(T / dt)  # Number of simulation loop
 
-    # Setup a neuron
+    # Setup an SNN
     n_units: Final[int] = 1000
-    connection_ratio: Final[float] = 0.01
+    connection_ratio_x: Final[float] = 0.01
+    connection_ratio_in: Final[float] = 0.2
     alpha: Final[float] = 1.0
     G: Final[float] = 5e3
     Q: Final[float] = 5e3
     bias: Final[float] = 1000.0
     nn = SpikingNeuralNetwork(
-        n_units, in_dim, out_dim, dt * 1e3, connection_ratio, G, Q, alpha, bias
+        n_units,
+        in_dim,
+        out_dim,
+        dt * 1e3,
+        connection_ratio_x,
+        connection_ratio_in,
+        G,
+        Q,
+        alpha,
+        bias,
     )
     nn.reset_state()
 

@@ -20,22 +20,32 @@ def example_SNN():
     step = 1
     n_units_observed = 1
 
-    # Setup a neuron
+    # Setup an SNN
     n_units = 1000
-    connection_ratio = 0.01
+    connection_ratio_x = 0.01
+    connection_ratio_in = 0.2
     alpha = 1.0
     G = 5e3
     Q = 5e3
     bias = 1000.0
     nn = SpikingNeuralNetwork(
-        n_units, 1, 1, dt * 1e3, connection_ratio, G, Q, alpha, bias
+        n_units,
+        1,
+        1,
+        dt * 1e3,
+        connection_ratio_x,
+        connection_ratio_in,
+        G,
+        Q,
+        alpha,
+        bias,
     )
     nn.reset_state()
 
     # Initialize variables
     a = 2 * np.pi * 5.0
     t = 0.0
-    current = np.zeros((n_units,), dtype=np.float64)
+    current = np.zeros((1,), dtype=np.float64)
     Xest: list[npt.NDArray[np.float64]] = []
     Xteach: list[npt.NDArray[np.float64]] = []
     R: list[npt.NDArray[np.float64]] = []
@@ -44,7 +54,7 @@ def example_SNN():
     # Simulation loop
     for i in tqdm.tqdm(range(nt)):
         t = i * dt
-        current = np.random.normal(0, 100, (n_units,)).astype(np.float64)
+        current = np.random.normal(0, 100, (1,)).astype(np.float64)
 
         # Update the SNN
         nn.update(current)

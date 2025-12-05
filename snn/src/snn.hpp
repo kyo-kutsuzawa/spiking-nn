@@ -63,7 +63,7 @@ public:
     IzhikevichNeuron neurons;
     DoubleExponentialSynapticFilter synapses;
     Eigen::VectorXd x;
-    SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias);
+    SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio_x, double connection_ratio_in, double G, double Q, double alpha, double bias);
     void reset_state();
     void update(const Eigen::Ref<const Eigen::VectorXd> input);
     void train(const Eigen::Ref<const Eigen::VectorXd> teaching_signal);

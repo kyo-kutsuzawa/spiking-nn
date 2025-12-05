@@ -3,7 +3,7 @@
 #include <vector>
 #include "snn.hpp"
 
-SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio, double G, double Q, double alpha, double bias)
+SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_size, double dt, double connection_ratio_x, double connection_ratio_in, double G, double Q, double alpha, double bias)
 {
     std::random_device rd;
     std::default_random_engine rand_engine(rd());
@@ -17,14 +17,12 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     double coef;
     int i, j;
 
-    const double connection_ratio_in = 0.2;
-
     this->n_units = n_units;
     this->in_size = in_size;
     this->out_size = out_size;
     this->dt = dt;
 
-    this->p = connection_ratio;
+    this->p = connection_ratio_x;
     this->G = G;
     this->Q = Q;
     this->alpha = alpha;
@@ -54,7 +52,7 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     }
 
     this->w0_sp = Eigen::SparseMatrix<double>(n_units, n_units);
-    for (i = 0; i < (int)(n_units * n_units * connection_ratio); i++)
+    for (i = 0; i < (int)(n_units * n_units * connection_ratio_x); i++)
     {
         triplet_vec_w0.push_back(Eigen::Triplet<double>(dist_idx(rand_engine), dist_idx(rand_engine), dist_normal(rand_engine) * coef));
     }
