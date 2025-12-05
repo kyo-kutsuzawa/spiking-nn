@@ -3,5 +3,6 @@ __pycache__
 build
 dataset
 eigen-5.0.0
+others
 pybind11
 venv
