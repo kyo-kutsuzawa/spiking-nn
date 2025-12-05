@@ -11,9 +11,13 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     std::uniform_real_distribution<double> dist_11(-1.0, 1.0);
     std::normal_distribution<double> dist_normal(0.0, 1.0);
     std::uniform_int_distribution<int> dist_idx(0, n_units - 1);
-    std::vector<Eigen::Triplet<double>> triplet_vec;
+    std::uniform_int_distribution<int> dist_idi(0, in_size - 1);
+    std::vector<Eigen::Triplet<double>> triplet_vec_w0;
+    std::vector<Eigen::Triplet<double>> triplet_vec_win;
     double coef;
     int i, j;
+
+    const double connection_ratio_in = 0.2;
 
     this->n_units = n_units;
     this->in_size = in_size;
@@ -52,9 +56,16 @@ SpikingNeuralNetwork::SpikingNeuralNetwork(int n_units, int in_size, int out_siz
     this->w0_sp = Eigen::SparseMatrix<double>(n_units, n_units);
     for (i = 0; i < (int)(n_units * n_units * connection_ratio); i++)
     {
-        triplet_vec.push_back(Eigen::Triplet<double>(dist_idx(rand_engine), dist_idx(rand_engine), dist_normal(rand_engine) * coef));
+        triplet_vec_w0.push_back(Eigen::Triplet<double>(dist_idx(rand_engine), dist_idx(rand_engine), dist_normal(rand_engine) * coef));
     }
-    this->w0_sp.setFromTriplets(triplet_vec.begin(), triplet_vec.end());
+    this->w0_sp.setFromTriplets(triplet_vec_w0.begin(), triplet_vec_w0.end());
+
+    this->win_sp = Eigen::SparseMatrix<double>(n_units, in_size);
+    for (i = 0; i < (int)(n_units * in_size * connection_ratio_in); i++)
+    {
+        triplet_vec_win.push_back(Eigen::Triplet<double>(dist_idx(rand_engine), dist_idi(rand_engine), dist_normal(rand_engine)));
+    }
+    this->win_sp.setFromTriplets(triplet_vec_win.begin(), triplet_vec_win.end());
 
     this->i_bias = Eigen::VectorXd(n_units);
     for (i = 0; i < n_units; i++)
@@ -102,7 +113,7 @@ void SpikingNeuralNetwork::update(const Eigen::Ref<const Eigen::VectorXd> input)
     int i;
 
     // Calculate input currents
-    this->current = this->Gw0_sp * this->synapses.r + this->Qeta * this->x + this->i_bias + input;
+    this->current = this->Gw0_sp * this->synapses.r + this->Qeta * this->x + this->i_bias + this->win_sp * input;
 
     for (i = 0; i < this->n_units; i++)
     {

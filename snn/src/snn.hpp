@@ -86,6 +86,7 @@ private:
     RowMatrixXd P;          /**< @brief used for RLS */
     RowMatrixXd Gw0;
     RowMatrixXd Qeta;
+    RowMatrixXd Win;
     Eigen::VectorXd errors;
     Eigen::VectorXd Pr;
     RowMatrixXd PrrP;
@@ -94,4 +95,5 @@ private:
 
     Eigen::SparseMatrix<double> w0_sp;
     Eigen::SparseMatrix<double> Gw0_sp;
+    Eigen::SparseMatrix<double> win_sp;
 };
