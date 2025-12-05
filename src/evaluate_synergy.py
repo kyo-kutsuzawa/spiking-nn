@@ -1,5 +1,6 @@
 import glob
 import os
+import random
 from typing import Final
 
 import matplotlib.pyplot as plt
@@ -13,12 +14,13 @@ import synergy
 def evaluate() -> None:
     # Define constants
     n_synergies: Final[int] = 4
-    synergy_length: Final[int] = 25
+    synergy_length: Final[int] = 20
     n_dof: Final[int] = 2
     refractory_period: Final[int] = int(synergy_length / 2)
     n_activities_max: Final[int] = 70
-    n_iter: Final[int] = 30
+    n_iter: Final[int] = 100
     lr: Final[float] = 5.0
+    n_show: Final[int] = 5
 
     # Load a dataset
     dataset: list[npt.NDArray[np.float64]] = []
@@ -49,15 +51,19 @@ def evaluate() -> None:
 
     synergies = np.array(tvsynergies.get_synergies(), dtype=np.float64)
 
-    fig = plt.figure(figsize=(6, 4), constrained_layout=True)
-    gs_master = GridSpec(nrows=1, ncols=2, figure=fig, width_ratios=[2, 1])
+    fig = plt.figure(figsize=(12, 4), constrained_layout=True)
+    gs_master = GridSpec(nrows=1, ncols=3, figure=fig, width_ratios=[2, 2, 1])
 
     # Plot reconstruction data
+    gs_2d = GridSpecFromSubplotSpec(nrows=1, ncols=1, subplot_spec=gs_master[0, 0])
     gs_data = GridSpecFromSubplotSpec(
-        nrows=n_dof * 2, ncols=1, subplot_spec=gs_master[0, 0]
+        nrows=n_dof * 2, ncols=1, subplot_spec=gs_master[0, 1]
     )
     axes = [fig.add_subplot(gs_data[m, 0]) for m in range(n_dof * 2)]
-    for n in range(n_data):
+    ax2d = fig.add_subplot(gs_2d[0, 0])
+    ax2d.set_aspect("equal")
+    for i, n in enumerate(random.sample(range(n_data), min(n_data, n_show))):
+        # Compute reconstructed data
         trajectory = np.array(trajectories[n], dtype=np.float64)
 
         amplitudes, delays = synergy.encode(
@@ -68,25 +74,44 @@ def evaluate() -> None:
         )
         trajectory_est = np.array(trajectory_est_list, dtype=np.float64)
 
+        positions = np.cumsum(trajectory, axis=0)
+        positions_est = np.cumsum(trajectory_est, axis=0)
+
+        # Plot 2d position trajectory
+        ax2d.plot(
+            -(positions[:, 0] - positions[:, 0 + n_dof]),
+            positions[:, 1] - positions[:, 1 + n_dof],
+            lw=2,
+            ls=":",
+            color="C{}".format(i),
+        )
+        ax2d.plot(
+            -(positions_est[:, 0] - positions_est[:, 0 + n_dof]),
+            positions_est[:, 1] - positions_est[:, 1 + n_dof],
+            lw=2,
+            color="C{}".format(i),
+        )
+
+        # Plot time-series of velocity
         for m, ax in enumerate(axes):
             ax.plot(
                 np.arange(len(trajectory)),
                 trajectory[:, m],
                 lw=2,
                 ls=":",
-                color="C{}".format(n),
+                color="C{}".format(i),
             )
             ax.plot(
                 np.arange(len(trajectory)),
                 trajectory_est[:, m],
                 lw=1,
-                color="C{}".format(n),
+                color="C{}".format(i),
             )
             ax.set_xlim((0, len(trajectory) - 1))
 
     # Plot extracted synergies
     gs_synergies = GridSpecFromSubplotSpec(
-        nrows=n_synergies, ncols=1, subplot_spec=gs_master[0, 1]
+        nrows=n_synergies, ncols=1, subplot_spec=gs_master[0, 2]
     )
     for k in range(n_synergies):
         ax = fig.add_subplot(gs_synergies[k, 0])
