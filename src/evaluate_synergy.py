@@ -25,12 +25,18 @@ def evaluate() -> None:
     # Load a dataset
     dataset: list[npt.NDArray[np.float64]] = []
     datasets_dir = os.path.join(
-        os.path.basename(__file__), "../dataset13/data_realsense_train/*.csv"
+        os.path.basename(__file__), "../dataset/data_realsense_train/*.csv"
     )
     filelist = glob.glob(datasets_dir)
     for filename in filelist:
         data = np.loadtxt(filename, delimiter=",")
         dataset.append(data)
+
+    # Create a result folder
+    synergy_dir: Final[str] = os.path.join(
+        os.path.basename(__file__), "../dataset/synergies"
+    )
+    os.makedirs(synergy_dir, exist_ok=True)
 
     # Preprosessing the dataset
     trajectories = convert_dataset(dataset)
@@ -50,6 +56,11 @@ def evaluate() -> None:
     )
 
     synergies = np.array(tvsynergies.get_synergies(), dtype=np.float64)
+
+    # Save synergies
+    for i in range(n_synergies):
+        filename_synergy = os.path.join(synergy_dir, "synergy{}.csv".format(i))
+        np.savetxt(filename_synergy, synergies[i])
 
     fig = plt.figure(figsize=(12, 4), constrained_layout=True)
     gs_master = GridSpec(nrows=1, ncols=3, figure=fig, width_ratios=[2, 2, 1])
@@ -126,6 +137,9 @@ def evaluate() -> None:
                 color="C{}".format(m),
             )
         ax.set_xlim((0, synergy_length))
+
+    filename_fig = os.path.join(synergy_dir, "synergies.pdf")
+    fig.savefig(filename_fig)
 
     plt.show()
 
