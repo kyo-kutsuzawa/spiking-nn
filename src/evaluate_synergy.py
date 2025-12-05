@@ -19,7 +19,7 @@ def evaluate() -> None:
     refractory_period: Final[int] = int(synergy_length / 2)
     n_activities_max: Final[int] = 70
     n_iter: Final[int] = 100
-    lr: Final[float] = 5.0
+    lr: Final[float] = 3.0
     n_show: Final[int] = 5
 
     # Load a dataset
@@ -35,7 +35,7 @@ def evaluate() -> None:
     # Preprosessing the dataset
     trajectories = convert_dataset(dataset)
     n_data: Final[int] = len(trajectories)
-    trajectory_length = len(trajectories[0])
+    trajectory_length: Final[int] = len(trajectories[0])
 
     # Extract synergies
     tvsynergies = synergy.extract(

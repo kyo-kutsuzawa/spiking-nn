@@ -61,10 +61,10 @@ std::vector<std::vector<std::vector<double>>> _TimeVaryingSynergy::get_synergies
 
 _TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>> &trajectories, int n_synergies, int synergy_length, int refractory_period, int n_activities_max, int n_iter, double lr, bool print_progress)
 {
-    size_t n_data = trajectories.size();
-    size_t trajectory_length = trajectories[0].size();
-    size_t n_dim = trajectories[0][0].size();
-    size_t trajectories_size = n_data * trajectory_length * n_dim;
+    const size_t n_data = trajectories.size();
+    const size_t trajectory_length = trajectories[0].size();
+    const size_t n_dim = trajectories[0][0].size();
+    const size_t trajectories_size = n_data * trajectory_length * n_dim;
     double *trajectories_array = (double *)malloc(trajectories_size * sizeof(double));
     _TimeVaryingSynergy synergies(n_synergies, synergy_length, (int)n_dim, refractory_period);
 
@@ -88,13 +88,13 @@ _TimeVaryingSynergy _extract(const std::vector<std::vector<std::vector<double>>>
 
 pybind11::tuple _encode(const std::vector<std::vector<double>> &trajectory, const _TimeVaryingSynergy &synergies, int n_activities_max)
 {
-    size_t trajectory_length = trajectory.size();
-    size_t n_dim = trajectory[0].size();
-    size_t trajectory_size = trajectory_length * n_dim;
+    const size_t trajectory_length = trajectory.size();
+    const size_t n_dim = trajectory[0].size();
+    const size_t trajectory_size = trajectory_length * n_dim;
     double *trajectory_array = (double *)malloc(trajectory_size * sizeof(double));
     struct TVSynergyActivities activities;
-    std::vector<std::vector<double>> amplitudes(synergies.data.n_synergies, std::vector<double>(n_activities_max));
-    std::vector<std::vector<int>> delays(synergies.data.n_synergies, std::vector<int>(n_activities_max));
+    std::vector<std::vector<double>> amplitudes(synergies.data.n_synergies, std::vector<double>(n_activities_max, 0.0));
+    std::vector<std::vector<int>> delays(synergies.data.n_synergies, std::vector<int>(n_activities_max, 0));
     pybind11::tuple activities_tuple;
 
     initialize_activities(&activities, synergies.data.n_synergies, n_activities_max);
@@ -126,23 +126,12 @@ pybind11::tuple _encode(const std::vector<std::vector<double>> &trajectory, cons
 
 std::vector<std::vector<double>> _decode(const std::vector<std::vector<double>> &amplitudes, const std::vector<std::vector<int>> &delays, const _TimeVaryingSynergy &synergies, int trajectory_length)
 {
-    size_t n_activities_max;
-    int idx;
-    int n_dim = synergies.data.n_dim;
+    const size_t n_activities_max=amplitudes[0].size();;
+    const int n_dim = synergies.data.n_dim;
     struct TVSynergyActivities activities;
     double *trajectory_array = (double *)calloc(trajectory_length * n_dim, sizeof(double));
     std::vector<std::vector<double>> trajectory(trajectory_length, std::vector<double>(n_dim, 0.0));
-
-    // Calculate n_activities_max
-    n_activities_max = 0;
-    for (size_t i = 0; i < amplitudes.size(); i++)
-    {
-        if (n_activities_max > amplitudes[i].size())
-        {
-            n_activities_max = amplitudes[i].size();
-        }
-    }
-    n_activities_max++;
+    int idx;
 
     // Initialize synergy activity
     initialize_activities(&activities, synergies.data.n_synergies, (int)n_activities_max);

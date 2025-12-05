@@ -122,8 +122,9 @@ int extract(struct TimeVaryingSynergy *synergies, const double *trajectories, in
     double *trajectory_reconstructed;
     int synergies_size;
     int trajectory_size;
-    int i, j, k, l;
     int ret_val;
+    // int i, j, k, l;
+    int i;
     int iter;
 
     srand((unsigned int)time(NULL));
@@ -225,6 +226,7 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
     int *synergy_available = calloc(activities->n_synergies * trajectory_length, sizeof(int)); // Whether the delay time of the synergy has been found
     double correlation;
     double max_correlation_value;
+    double amplitude;
     int max_correlation_time;
     int max_correlation_synergy_idx;
     int idx;
@@ -279,13 +281,15 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
             }
         }
 
-        if (max_correlation_value < amplitude_th)
+        amplitude = max_correlation_value;
+
+        if (amplitude < amplitude_th)
         {
             break;
         }
 
         idx = activities->n_activities_max * max_correlation_synergy_idx + activity_index[max_correlation_synergy_idx];
-        activities->amplitudes[idx] = max_correlation_value;
+        activities->amplitudes[idx] = amplitude;
         activities->delays[idx] = max_correlation_time;
         activity_index[max_correlation_synergy_idx]++;
 
@@ -294,7 +298,7 @@ int encode(struct TVSynergyActivities *activities, const double *trajectory, con
         {
             for (l = 0; l < n_dim; l++)
             {
-                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= max_correlation_value * synergies->synergies[synergies->synergy_length * n_dim * max_correlation_synergy_idx + n_dim * k + l];
+                trajectory_copy[n_dim * (max_correlation_time + k) + l] -= amplitude * synergies->synergies[synergies->synergy_length * n_dim * max_correlation_synergy_idx + n_dim * k + l];
             }
         }
 
