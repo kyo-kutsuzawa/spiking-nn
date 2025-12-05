@@ -14,7 +14,7 @@ import synergy
 def evaluate() -> None:
     # Define constants
     n_synergies: Final[int] = 4
-    synergy_length: Final[int] = 20
+    synergy_length: Final[int] = 25
     n_dof: Final[int] = 2
     refractory_period: Final[int] = int(synergy_length / 2)
     n_activities_max: Final[int] = 70
@@ -32,11 +32,15 @@ def evaluate() -> None:
         data = np.loadtxt(filename, delimiter=",")
         dataset.append(data)
 
-    # Create a result folder
+    # Create result folders
     synergy_dir: Final[str] = os.path.join(
         os.path.basename(__file__), "../dataset/synergies"
     )
     os.makedirs(synergy_dir, exist_ok=True)
+    activity_dir: Final[str] = os.path.join(
+        os.path.basename(__file__), "../dataset/train"
+    )
+    os.makedirs(activity_dir, exist_ok=True)
 
     # Preprosessing the dataset
     trajectories = convert_dataset(dataset)
@@ -60,7 +64,19 @@ def evaluate() -> None:
     # Save synergies
     for i in range(n_synergies):
         filename_synergy = os.path.join(synergy_dir, "synergy{}.csv".format(i))
-        np.savetxt(filename_synergy, synergies[i])
+        np.savetxt(filename_synergy, synergies[i], delimiter=",")
+
+    # Save activities
+    for i in range(n_data):
+        amplitudes, delays = synergy.encode(
+            trajectories[i], tvsynergies, n_activities_max
+        )
+        activity = convert_activity(amplitudes, delays, trajectory_length)
+        filename_activity = os.path.join(
+            activity_dir,
+            os.path.splitext(os.path.basename(filelist[i]))[0] + "_activity.csv",
+        )
+        np.savetxt(filename_activity, activity, delimiter=",")
 
     fig = plt.figure(figsize=(12, 4), constrained_layout=True)
     gs_master = GridSpec(nrows=1, ncols=3, figure=fig, width_ratios=[2, 2, 1])
@@ -183,6 +199,27 @@ def convert_dataset(
         trajectories_array[i, 0:length, n_dim:] = data_negative
 
     return trajectories_array.tolist()
+
+
+def convert_activity(
+    amplitudes: list[list[float]],
+    delays: list[list[int]],
+    trajectory_length: int,
+) -> npt.NDArray[np.float64]:
+
+    n_synergies: Final[int] = len(amplitudes)
+    n_activities: Final[int] = len(amplitudes[0])
+
+    activity = np.zeros((trajectory_length, n_synergies), dtype=np.float64)
+
+    for i in range(n_synergies):
+        for j in range(n_activities):
+            amp = amplitudes[i][j]
+            tau = delays[i][j]
+
+            activity[tau, i] = amp
+
+    return activity
 
 
 if __name__ == "__main__":
