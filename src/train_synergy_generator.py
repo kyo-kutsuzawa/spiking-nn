@@ -54,13 +54,13 @@ def train_synergy_model(args: Args) -> None:
     activation_pattern, trajectories = generate_random_activity2(synergy, T, dt)
     activation_pattern *= args.gain_in
     trajectories *= args.gain_out
-    trajectories = trajectories[:, 1:2]
+    # trajectories = trajectories[:, 1:2]
     in_dim: Final[int] = 1
     out_dim: Final[int] = trajectories.shape[1]
 
     # Setup an SNN
     n_units: Final[int] = 1000
-    connection_ratio_x: Final[float] = 0.02
+    connection_ratio_x: Final[float] = 0.01
     connection_ratio_in: Final[float] = 0.2
     alpha: Final[float] = 1.0
     G: Final[float] = 5e3
@@ -356,13 +356,20 @@ def generate_random_activity2(
     n_dim: Final[int] = synergy.shape[1]
     length: Final[int] = int(t_max / dt)
 
-    amp = 0.01
-    activation_pattern: npt.NDArray[np.float64] = np.zeros(
-        (length, 1), dtype=np.float64
-    )
+    # activation_pattern: npt.NDArray[np.float64] = np.zeros(
+    #     (length, 1), dtype=np.float64
+    # )
+
+    # amp = 0.01
     # activation_pattern: npt.NDArray[np.float64] = np.full(
     #     (length, 1), amp, dtype=np.float64
     # )
+
+    amp = 0.01
+    activation_pattern: npt.NDArray[np.float64] = np.random.normal(
+        0, amp, (length, 1)
+    ).astype(np.float64)
+
     trajectories: npt.NDArray[np.float64] = np.zeros((length, n_dim), dtype=np.float64)
 
     for i in range(0, length, synergy_length):
