@@ -46,15 +46,9 @@ def train_synergy_model(args: Args) -> None:
         np.loadtxt(filename_synergies, delimiter=","), dt_old, dt
     )
 
-    # Load activities
-    # filename_activities: Final[str] = os.path.join(
-    #     os.path.basename(__file__), "../dataset/train/data_converted25_activity.csv"
-    # )
-
     activation_pattern, trajectories = generate_random_activity2(synergy, T, dt)
     activation_pattern *= args.gain_in
     trajectories *= args.gain_out
-    # trajectories = trajectories[:, 1:2]
     in_dim: Final[int] = 1
     out_dim: Final[int] = trajectories.shape[1]
 
@@ -97,120 +91,6 @@ def train_synergy_model(args: Args) -> None:
 
         # Calculate the ground-truth
         x = trajectories[i]
-
-        # Train the decoder
-        if t0 < t < t1:
-            if i % train_interval == 0:
-                nn.train(x)
-
-        # Record the current states
-        if t > t_record:
-            if i % step == 0:
-                Xest.append(xest)
-                Xteach.append(x)
-                R.append(nn.synapses.r[0:n_units_observed].copy())
-                V.append(nn.neurons.v[0:n_units_observed].copy())
-
-    # Make a figure
-    fig = plt.figure(figsize=(12, 4), constrained_layout=True)
-    ax1 = fig.add_subplot(3, 1, 1)
-    ax2 = fig.add_subplot(3, 1, 2)
-    ax3 = fig.add_subplot(3, 1, 3)
-
-    # Plot results
-    tspace = np.linspace(t_record, T, len(Xest))
-    for i in range(out_dim):
-        ax1.plot(tspace, np.array(Xteach)[:, i], color="C{}".format(i), ls=":")
-        ax1.plot(tspace, np.array(Xest)[:, i], color="C{}".format(i))
-    ax1.fill_between((t0, t1), -1.2, 1.2, color="black", alpha=0.3)
-    ax2.plot(tspace, np.array(R))
-    ax3.plot(tspace, np.array(V))
-
-    # Setup the figure
-    fig.suptitle("Simulation of SpikingNN")
-    ax1.set_xlim((t_record, T))
-    ax2.set_xlim((t_record, T))
-    ax3.set_xlim((t_record, T))
-    ax1.set_ylabel("$x(t)$")
-    ax2.set_ylabel("$r(t)$")
-    ax3.set_ylabel("$v(t)$")
-    ax1.set_xlabel("Time [s]")
-
-    # Show the figure
-    plt.show()
-
-
-def train_activity_model(args: Args) -> None:
-    # Setup constants
-    n_total_iter: Final[int] = 6
-    n_train_iter: Final[int] = 3
-    dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
-    train_interval: Final[int] = 10
-
-    t_record: Final[float] = 0.0
-    step: Final[int] = 10
-    n_units_observed: Final[int] = 1
-
-    # Load synergy activity
-    filename_activity: Final[str] = os.path.join(
-        os.path.basename(__file__),
-        "../dataset/train/data_converted{:02d}_activity.csv".format(args.id),
-    )
-    dt_old: Final[float] = 0.05
-    activity = convert_activities(
-        np.loadtxt(filename_activity, delimiter=","), dt_old, dt
-    )
-    activity *= args.gain_out
-    in_dim: Final[int] = 1
-    out_dim: Final[int] = activity.shape[1]
-    episode_length: Final[int] = activity.shape[0]
-    t_episode: Final[float] = episode_length * dt
-
-    T: Final[float] = t_episode * n_total_iter
-    t0: Final[float] = 0.0
-    t1: Final[float] = t_episode * n_train_iter
-    nt: Final[int] = int(T / dt)  # Number of simulation loop
-
-    # Setup an SNN
-    n_units: Final[int] = 1000
-    connection_ratio_x: Final[float] = 0.01
-    connection_ratio_in: Final[float] = 0.2
-    alpha: Final[float] = 1.0
-    G: Final[float] = 5e3
-    Q: Final[float] = 5e3
-    bias: Final[float] = 1000.0
-    nn = SpikingNeuralNetwork(
-        n_units,
-        in_dim,
-        out_dim,
-        dt * 1e3,
-        connection_ratio_x,
-        connection_ratio_in,
-        G,
-        Q,
-        alpha,
-        bias,
-    )
-    nn.reset_state()
-
-    # Initialize variables
-    t = 0.0
-    current = np.zeros((in_dim,), dtype=np.float64)
-    Xest: list[npt.NDArray[np.float64]] = []
-    Xteach: list[npt.NDArray[np.float64]] = []
-    R: list[npt.NDArray[np.float64]] = []
-    V: list[npt.NDArray[np.float64]] = []
-
-    # Simulation loop
-    for i in tqdm.tqdm(range(nt)):
-        t = i * dt
-
-        # Update the SNN
-        nn.update(current)
-        xest = nn.x.copy()
-
-        # Calculate the ground-truth
-        x = activity[i % episode_length]
 
         # Train the decoder
         if t0 < t < t1:
@@ -447,7 +327,7 @@ def test_convert_activities(args: Args) -> None:
     plt.show()
 
 
-def test_generate_data(args: Args):
+def test_generate_data(args: Args) -> None:
     T: Final[float] = 30.0  # Total simulation time [s]
     dt_old: Final[float] = 0.05
     dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
@@ -490,8 +370,8 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.propagate = False
 
-    # test_convert_synergies(__args)
+    test_convert_synergies(__args)
     # test_convert_activities(__args)
     # test_generate_data(__args)
-    train_synergy_model(__args)
+    # train_synergy_model(__args)
     # train_activity_model(__args)

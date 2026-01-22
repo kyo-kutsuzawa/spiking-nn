@@ -1,13 +1,12 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+import tqdm
 
 from snn import SpikingNeuralNetwork
 
 
-def example_SNN():
-    import matplotlib.pyplot as plt
-    import tqdm
-
+def example_SNN() -> None:
     # Setup constants
     T = 30.0  # Total simulation time [s]
     t0 = 0.0
@@ -54,7 +53,7 @@ def example_SNN():
     # Simulation loop
     for i in tqdm.tqdm(range(nt)):
         t = i * dt
-        current = np.random.normal(0, 100, (1,)).astype(np.float64)
+        current = np.random.normal(0, 100, (1,)).astype(np.float64).reshape(-1)
 
         # Update the SNN
         nn.update(current)
