@@ -42,7 +42,7 @@ def train_synergy_model(args: Args) -> None:
         os.path.basename(__file__), "../dataset/synergies/synergy{}.csv".format(args.id)
     )
     dt_old: Final[float] = 0.05
-    synergy = convert_synergies(
+    synergy = convert_synergies2(
         np.loadtxt(filename_synergies, delimiter=","), dt_old, dt
     )
 
@@ -147,6 +147,26 @@ def convert_synergies(
     synergy_new_list: list[npt.NDArray[np.float64]] = []
     for i in range(n_dim):
         v_new = np.interp(t_new, t_old, synergy[:, i])
+        synergy_new_list.append(v_new.copy())
+
+    synergy_new = np.stack(synergy_new_list, axis=1)
+
+    return synergy_new
+
+
+def convert_synergies2(
+    synergy: npt.NDArray[np.float64], dt_old: float, dt_new: float
+) -> npt.NDArray[np.float64]:
+
+    length: Final[int] = synergy.shape[0]
+    n_dim: Final[int] = synergy.shape[1] // 2
+
+    t_old = np.arange(length, dtype=np.float64) * dt_old
+    t_new = np.linspace(0, t_old[-1], int(t_old[-1] / dt_new + 1), endpoint=True)
+
+    synergy_new_list: list[npt.NDArray[np.float64]] = []
+    for i in range(n_dim):
+        v_new = np.interp(t_new, t_old, synergy[:, i] - synergy[:, i + n_dim])
         synergy_new_list.append(v_new.copy())
 
     synergy_new = np.stack(synergy_new_list, axis=1)
@@ -292,6 +312,45 @@ def test_convert_synergies(args: Args) -> None:
     plt.show()
 
 
+def test_convert_synergies2(args: Args) -> None:
+    dt_old: Final[float] = 0.05
+    dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
+
+    # Load a synergy
+    filename: Final[str] = os.path.join(
+        os.path.basename(__file__), "../dataset/synergies/synergy{}.csv".format(args.id)
+    )
+    synergy = np.loadtxt(filename, delimiter=",")
+    synergy_new = convert_synergies2(synergy, dt_old, dt)
+
+    n_dim: Final[int] = synergy_new.shape[1]
+
+    fig = plt.figure(constrained_layout=True)
+
+    for i in range(n_dim):
+        ax = fig.add_subplot(n_dim, 1, i + 1)
+        ax.plot(
+            np.arange(synergy.shape[0]) * dt_old,
+            synergy[:, i],
+            ls=":",
+            color="C{}".format(i),
+        )
+        ax.plot(
+            np.arange(synergy.shape[0]) * dt_old,
+            -synergy[:, i + n_dim],
+            ls="--",
+            color="C{}".format(i),
+        )
+        ax.plot(
+            np.arange(synergy_new.shape[0]) * dt,
+            synergy_new[:, i],
+            lw=1,
+            color="C{}".format(i),
+        )
+
+    plt.show()
+
+
 def test_convert_activities(args: Args) -> None:
     dt_old: Final[float] = 0.05
     dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
@@ -371,6 +430,7 @@ if __name__ == "__main__":
     logger.propagate = False
 
     # test_convert_synergies(__args)
+    # test_convert_synergies2(__args)
     # test_convert_activities(__args)
     # test_generate_data(__args)
     train_synergy_model(__args)
