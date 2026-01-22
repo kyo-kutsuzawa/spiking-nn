@@ -370,8 +370,8 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.propagate = False
 
-    test_convert_synergies(__args)
+    # test_convert_synergies(__args)
     # test_convert_activities(__args)
     # test_generate_data(__args)
-    # train_synergy_model(__args)
+    train_synergy_model(__args)
     # train_activity_model(__args)
