@@ -1,6 +1,8 @@
+import argparse
 import glob
 import os
 import random
+from dataclasses import dataclass, field
 from typing import Final
 
 import matplotlib.pyplot as plt
@@ -11,15 +13,24 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 import synergy
 
 
-def evaluate() -> None:
+@dataclass
+class Args:
+    n_synergies: int = field(default_factory=int)
+    synergy_length: int = field(default_factory=int)
+    n_iter: int = field(default_factory=int)
+    lr: float = field(default_factory=float)
+
+
+def evaluate(args: Args) -> None:
     # Define constants
-    n_synergies: Final[int] = 4
-    synergy_length: Final[int] = 25
+    n_synergies: Final[int] = args.n_synergies
+    synergy_length: Final[int] = args.synergy_length
     n_dof: Final[int] = 2
-    refractory_period: Final[int] = int(synergy_length / 2)
+    # refractory_period: Final[int] = int(synergy_length / 2)
+    refractory_period: Final[int] = synergy_length
     n_activities_max: Final[int] = 70
-    n_iter: Final[int] = 100
-    lr: Final[float] = 3.0
+    n_iter: Final[int] = args.n_iter
+    lr: Final[float] = args.lr
     n_show: Final[int] = 5
 
     # Load a dataset
@@ -223,4 +234,11 @@ def convert_activity(
 
 
 if __name__ == "__main__":
-    evaluate()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n-synergies", type=int, default=4)
+    parser.add_argument("--synergy-length", type=int, default=25)
+    parser.add_argument("--n-iter", type=int, default=100)
+    parser.add_argument("--lr", type=float, default=3.0)
+    __args = Args(**vars(parser.parse_args()))
+
+    evaluate(__args)

@@ -51,16 +51,17 @@ def train_synergy_model(args: Args) -> None:
     #     os.path.basename(__file__), "../dataset/train/data_converted25_activity.csv"
     # )
 
-    activation_pattern, trajectories = generate_random_activity(synergy, T, dt)
+    activation_pattern, trajectories = generate_random_activity2(synergy, T, dt)
     activation_pattern *= args.gain_in
     trajectories *= args.gain_out
+    trajectories = trajectories[:, 1:2]
     in_dim: Final[int] = 1
     out_dim: Final[int] = trajectories.shape[1]
 
     # Setup an SNN
     n_units: Final[int] = 1000
-    connection_ratio_x: Final[float] = 0.01
-    connection_ratio_in: Final[float] = 1.0
+    connection_ratio_x: Final[float] = 0.02
+    connection_ratio_in: Final[float] = 0.2
     alpha: Final[float] = 1.0
     G: Final[float] = 5e3
     Q: Final[float] = 5e3
@@ -301,6 +302,20 @@ def convert_activities(
     return activity_new
 
 
+def pulse_to_persistence(
+    activity: npt.NDArray[np.float64], synergy_length: int
+) -> npt.NDArray[np.float64]:
+    length: Final[int] = activity.shape[0]
+    n_dim: Final[int] = activity.shape[1]
+
+    activity_persistence = np.zeros_like(activity, dtype=np.float64)
+
+    for i in range(synergy_length):
+        activity_persistence[i:, :] += activity[: length - i, :]
+
+    return activity_persistence
+
+
 def generate_random_activity(
     synergy: npt.NDArray[np.float64], t_max: float, dt: float
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
@@ -308,7 +323,7 @@ def generate_random_activity(
     n_dim: Final[int] = synergy.shape[1]
     length: Final[int] = int(t_max / dt)
     n_activities: Final[int] = int(length / synergy_length * 0.5)
-    refractory_period: Final[int] = int(synergy_length / 2)
+    refractory_period: Final[int] = synergy_length
 
     activation_pattern: npt.NDArray[np.float64] = np.zeros(
         (length, 1), dtype=np.float64
@@ -328,8 +343,31 @@ def generate_random_activity(
                 synergy_available[t0:t1] = False
                 break
 
-        activation_pattern[tau, 0] = amp
+        activation_pattern[tau : tau + synergy_length, 0] += amp
         trajectories[tau : tau + synergy_length, :] += synergy
+
+    return activation_pattern, trajectories
+
+
+def generate_random_activity2(
+    synergy: npt.NDArray[np.float64], t_max: float, dt: float
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    synergy_length: Final[int] = synergy.shape[0]
+    n_dim: Final[int] = synergy.shape[1]
+    length: Final[int] = int(t_max / dt)
+
+    amp = 0.01
+    activation_pattern: npt.NDArray[np.float64] = np.zeros(
+        (length, 1), dtype=np.float64
+    )
+    # activation_pattern: npt.NDArray[np.float64] = np.full(
+    #     (length, 1), amp, dtype=np.float64
+    # )
+    trajectories: npt.NDArray[np.float64] = np.zeros((length, n_dim), dtype=np.float64)
+
+    for i in range(0, length, synergy_length):
+        actual_length = min(i + synergy_length, length) - i
+        trajectories[i : i + actual_length] = synergy[:actual_length]
 
     return activation_pattern, trajectories
 
@@ -370,6 +408,7 @@ def test_convert_synergies(args: Args) -> None:
 def test_convert_activities(args: Args) -> None:
     dt_old: Final[float] = 0.05
     dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
+    synergy_length: Final[int] = 20
 
     # Load synergy activity
     filename_activity: Final[str] = os.path.join(
@@ -377,7 +416,8 @@ def test_convert_activities(args: Args) -> None:
         "../dataset/train/data_converted{:02d}_activity.csv".format(args.id),
     )
     activity = np.loadtxt(filename_activity, delimiter=",")
-    activity_new = convert_activities(activity, dt_old, dt)
+    activity_persist = pulse_to_persistence(activity, synergy_length)
+    activity_new = convert_activities(activity_persist, dt_old, dt)
     n_dim: Final[int] = activity.shape[1]
 
     fig = plt.figure(constrained_layout=True)
@@ -413,7 +453,7 @@ def test_generate_data(args: Args):
         np.loadtxt(filename_synergies, delimiter=","), dt_old, dt
     )
 
-    activation_pattern, trajectories = generate_random_activity(synergy, T, dt)
+    activation_pattern, trajectories = generate_random_activity2(synergy, T, dt)
     activation_pattern *= args.gain_in
     trajectories *= args.gain_out
     length: Final[int] = activation_pattern.shape[0]
