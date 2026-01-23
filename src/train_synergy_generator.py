@@ -23,15 +23,51 @@ class Args:
     gain_out: float = field(default_factory=float)
     """Output gain"""
 
+    train_interval: int = field(default_factory=int)
+    """Training interval [step]"""
 
-def train_synergy_model(args: Args) -> None:
+    n_units: int = field(default_factory=int)
+    """Number of units"""
+
+    connection_ratio_x: float = field(default_factory=float)
+    """Connection ratio between neurons"""
+
+    connection_ratio_in: float = field(default_factory=float)
+    """Connection ratio between input and neurons"""
+
+    alpha: float = field(default_factory=float)
+    """Reguralization factor"""
+
+    G: float = field(default_factory=float)
+    """Internal-feedback gain"""
+
+    Q: float = field(default_factory=float)
+    """Output-feedback gain"""
+
+    bias: float = field(default_factory=float)
+    """Bias for neurons"""
+
+    t_end: float = field(default_factory=float)
+    """Total simulation time [s]"""
+
+    t_train_start: float = field(default_factory=float)
+    """Time training starts [s]"""
+
+    t_train_finish: float = field(default_factory=float)
+    """Time training finishes [s]"""
+
+    plot: bool = True
+    """Whether to plot a figure"""
+
+
+def train_synergy_model(args: Args) -> float:
     # Setup constants
-    T: Final[float] = 30.0  # Total simulation time [s]
-    t0: Final[float] = 0.0
-    t1: Final[float] = 15.0
+    T: Final[float] = args.t_end
+    t0: Final[float] = args.t_train_start
+    t1: Final[float] = args.t_train_finish
     dt: Final[float] = 1.0 * 1e-3  # Integral time interval [s]
     nt: Final[int] = int(T / dt)  # Number of simulation loop
-    train_interval: Final[int] = 10
+    train_interval: Final[int] = args.train_interval
 
     t_record: Final[float] = 0.0
     step: Final[int] = 1
@@ -53,29 +89,23 @@ def train_synergy_model(args: Args) -> None:
     out_dim: Final[int] = trajectories.shape[1]
 
     # Setup an SNN
-    n_units: Final[int] = 1000
-    connection_ratio_x: Final[float] = 0.01
-    connection_ratio_in: Final[float] = 0.2
-    alpha: Final[float] = 1.0
-    G: Final[float] = 5e3
-    Q: Final[float] = 5e3
-    bias: Final[float] = 1000.0
     nn = SpikingNeuralNetwork(
-        n_units,
+        args.n_units,
         in_dim,
         out_dim,
         dt * 1e3,
-        connection_ratio_x,
-        connection_ratio_in,
-        G,
-        Q,
-        alpha,
-        bias,
+        args.connection_ratio_x,
+        args.connection_ratio_in,
+        args.G,
+        args.Q,
+        args.alpha,
+        args.bias,
     )
     nn.reset_state()
 
     # Initialize variables
     t = 0.0
+    errors: list[float] = []
     Xest: list[npt.NDArray[np.float64]] = []
     Xteach: list[npt.NDArray[np.float64]] = []
     R: list[npt.NDArray[np.float64]] = []
@@ -97,6 +127,11 @@ def train_synergy_model(args: Args) -> None:
             if i % train_interval == 0:
                 nn.train(x)
 
+        # Compute error
+        if t >= t1:
+            e = float(np.sqrt(np.sum((xest - x) ** 2)))
+            errors.append(e)
+
         # Record the current states
         if t > t_record:
             if i % step == 0:
@@ -105,33 +140,39 @@ def train_synergy_model(args: Args) -> None:
                 R.append(nn.synapses.r[0:n_units_observed].copy())
                 V.append(nn.neurons.v[0:n_units_observed].copy())
 
-    # Make a figure
-    fig = plt.figure(figsize=(12, 4), constrained_layout=True)
-    ax1 = fig.add_subplot(3, 1, 1)
-    ax2 = fig.add_subplot(3, 1, 2)
-    ax3 = fig.add_subplot(3, 1, 3)
+    # Compute the mean error after training finished
+    mean_error: Final[float] = sum(errors) / len(errors)
 
-    # Plot results
-    tspace = np.linspace(t_record, T, len(Xest))
-    for i in range(out_dim):
-        ax1.plot(tspace, np.array(Xteach)[:, i], color="C{}".format(i), ls=":")
-        ax1.plot(tspace, np.array(Xest)[:, i], color="C{}".format(i))
-    ax1.fill_between((t0, t1), -1.2, 1.2, color="black", alpha=0.3)
-    ax2.plot(tspace, np.array(R))
-    ax3.plot(tspace, np.array(V))
+    if args.plot:
+        # Make a figure
+        fig = plt.figure(figsize=(12, 4), constrained_layout=True)
+        ax1 = fig.add_subplot(3, 1, 1)
+        ax2 = fig.add_subplot(3, 1, 2)
+        ax3 = fig.add_subplot(3, 1, 3)
 
-    # Setup the figure
-    fig.suptitle("Simulation of SpikingNN")
-    ax1.set_xlim((t_record, T))
-    ax2.set_xlim((t_record, T))
-    ax3.set_xlim((t_record, T))
-    ax1.set_ylabel("$x(t)$")
-    ax2.set_ylabel("$r(t)$")
-    ax3.set_ylabel("$v(t)$")
-    ax1.set_xlabel("Time [s]")
+        # Plot results
+        tspace = np.linspace(t_record, T, len(Xest))
+        for i in range(out_dim):
+            ax1.plot(tspace, np.array(Xteach)[:, i], color="C{}".format(i), ls=":")
+            ax1.plot(tspace, np.array(Xest)[:, i], color="C{}".format(i))
+        ax1.fill_between((t0, t1), -1.2, 1.2, color="black", alpha=0.3)
+        ax2.plot(tspace, np.array(R))
+        ax3.plot(tspace, np.array(V))
 
-    # Show the figure
-    plt.show()
+        # Setup the figure
+        fig.suptitle("Simulation of SpikingNN")
+        ax1.set_xlim((t_record, T))
+        ax2.set_xlim((t_record, T))
+        ax3.set_xlim((t_record, T))
+        ax1.set_ylabel("$x(t)$")
+        ax2.set_ylabel("$r(t)$")
+        ax3.set_ylabel("$v(t)$")
+        ax1.set_xlabel("Time [s]")
+
+        # Show the figure
+        plt.show()
+
+    return mean_error
 
 
 def convert_synergies(
@@ -146,7 +187,7 @@ def convert_synergies(
 
     synergy_new_list: list[npt.NDArray[np.float64]] = []
     for i in range(n_dim):
-        v_new = np.interp(t_new, t_old, synergy[:, i])
+        v_new: npt.NDArray[np.float64] = np.interp(t_new, t_old, synergy[:, i])
         synergy_new_list.append(v_new.copy())
 
     synergy_new = np.stack(synergy_new_list, axis=1)
@@ -416,9 +457,40 @@ def test_generate_data(args: Args) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id", type=int, default=0)
-    parser.add_argument("--gain-in", type=float, default=1e5)
-    parser.add_argument("--gain-out", type=float, default=5.0)
+    parser.add_argument("--id", type=int, default=0, help="Synergy id to learn")
+    parser.add_argument("--gain-in", type=float, default=0.0, help="Input gain")
+    parser.add_argument("--gain-out", type=float, default=5.0, help="Output gain")
+    parser.add_argument(
+        "--train-interval", type=int, default=10, help="Training interval [step]"
+    )
+    parser.add_argument("--n-units", type=float, default=1000, help="Number of units")
+    parser.add_argument(
+        "--connection-ratio-x",
+        type=float,
+        default=0.01,
+        help="Connection ratio between neurons",
+    )
+    parser.add_argument(
+        "--connection-ratio-in",
+        type=float,
+        default=0.2,
+        help="Connection ratio between input and neurons",
+    )
+    parser.add_argument(
+        "--alpha", type=float, default=1.0, help="Reguralization factor"
+    )
+    parser.add_argument("--G", type=float, default=5e3, help="Internal-feedback gain")
+    parser.add_argument("--Q", type=float, default=5e3, help="Output-feedback gain")
+    parser.add_argument("--bias", type=float, default=1000.0, help="Bias for neurons")
+    parser.add_argument(
+        "--t-end", type=float, default=30.0, help="Total simulation time [s]"
+    )
+    parser.add_argument(
+        "--t-train-start", type=float, default=0.0, help="Time training starts [s]"
+    )
+    parser.add_argument(
+        "--t-train-finish", type=float, default=15.0, help="Time training finishes [s]"
+    )
     __args = Args(**vars(parser.parse_args()))
 
     # Setup logger
