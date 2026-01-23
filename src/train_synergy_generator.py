@@ -462,7 +462,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", type=int, default=0, help="Synergy id to learn")
     parser.add_argument("--gain-in", type=float, default=0.0, help="Input gain")
-    parser.add_argument("--gain-out", type=float, default=5.0, help="Output gain")
+    parser.add_argument("--gain-out", type=float, default=1.5, help="Output gain")
     parser.add_argument(
         "--train-interval", type=int, default=10, help="Training interval [step]"
     )
@@ -470,7 +470,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--connection-ratio-x",
         type=float,
-        default=0.01,
+        default=0.001,
         help="Connection ratio between neurons",
     )
     parser.add_argument(
@@ -480,11 +480,11 @@ if __name__ == "__main__":
         help="Connection ratio between input and neurons",
     )
     parser.add_argument(
-        "--alpha", type=float, default=1.0, help="Reguralization factor"
+        "--alpha", type=float, default=5.5, help="Reguralization factor"
     )
-    parser.add_argument("--G", type=float, default=5e3, help="Internal-feedback gain")
-    parser.add_argument("--Q", type=float, default=5e3, help="Output-feedback gain")
-    parser.add_argument("--bias", type=float, default=1000.0, help="Bias for neurons")
+    parser.add_argument("--G", type=float, default=5e5, help="Internal-feedback gain")
+    parser.add_argument("--Q", type=float, default=3e3, help="Output-feedback gain")
+    parser.add_argument("--bias", type=float, default=200.0, help="Bias for neurons")
     parser.add_argument(
         "--t-end", type=float, default=30.0, help="Total simulation time [s]"
     )
@@ -508,5 +508,6 @@ if __name__ == "__main__":
     # test_convert_synergies2(__args)
     # test_convert_activities(__args)
     # test_generate_data(__args)
-    train_synergy_model(__args)
+    loss = train_synergy_model(__args)
+    print(loss)
     # train_activity_model(__args)
