@@ -56,6 +56,9 @@ class Args:
     t_train_finish: float = field(default_factory=float)
     """Time training finishes [s]"""
 
+    show_progress: bool = True
+    """Whether to show a progress bar"""
+
     plot: bool = True
     """Whether to plot a figure"""
 
@@ -112,7 +115,7 @@ def train_synergy_model(args: Args) -> float:
     V: list[npt.NDArray[np.float64]] = []
 
     # Simulation loop
-    for i in tqdm.tqdm(range(nt)):
+    for i in tqdm.tqdm(range(nt), disable=not args.show_progress):
         t = i * dt
 
         # Update the SNN
@@ -129,7 +132,7 @@ def train_synergy_model(args: Args) -> float:
 
         # Compute error
         if t >= t1:
-            e = float(np.sqrt(np.sum((xest - x) ** 2)))
+            e = float(np.sqrt(np.sum(((xest - x) / args.gain_out) ** 2)))
             errors.append(e)
 
         # Record the current states
